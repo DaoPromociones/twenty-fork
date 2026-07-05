@@ -97,6 +97,7 @@ import { AddLogoToApplicationRegistrationFastInstanceCommand } from './2-19/2-19
 import { BackfillLogoOnApplicationRegistrationSlowInstanceCommand } from './2-19/2-19-instance-command-slow-1783069673191-backfill-logo-on-application-registration';
 import { AddDisplayFieldsToApplicationRegistrationFastInstanceCommand } from './2-19/2-19-instance-command-fast-1783073776590-add-display-fields-to-application-registration';
 import { BackfillDisplayFieldsOnApplicationRegistrationSlowInstanceCommand } from './2-19/2-19-instance-command-slow-1783073776591-backfill-display-fields-on-application-registration';
+import { AddAduanaProjectionAuditStorageFastInstanceCommand } from './2-20/2-20-instance-command-fast-1825000001000-add-aduana-projection-audit-storage';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -196,4 +197,5 @@ export const INSTANCE_COMMANDS = [
   AddDisplayFieldsToApplicationRegistrationFastInstanceCommand,
   BackfillDisplayFieldsOnApplicationRegistrationSlowInstanceCommand,
   AddStatusToFileFastInstanceCommand,
+  AddAduanaProjectionAuditStorageFastInstanceCommand,
 ];
