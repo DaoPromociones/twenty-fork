@@ -65,6 +65,7 @@ const WIDGET_TYPE_TO_CONFIGURATION_TYPE: Partial<
 const RECORD_PAGE_FIELDS_VIEW_NAME_BY_OBJECT: Partial<
   Record<AllStandardObjectName, string>
 > = {
+  aduanaProjection: 'aduanaProjectionRecordPageFields',
   blocklist: 'blocklistRecordPageFields',
   calendarChannelEventAssociation:
     'calendarChannelEventAssociationRecordPageFields',

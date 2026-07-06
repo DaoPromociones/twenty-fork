@@ -495,6 +495,27 @@ export const STANDARD_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS = {
       },
     },
   },
+  aduanaProjectionRecordPage: {
+    universalIdentifier: '4ba3849e-660a-473f-9256-c7362b04c3e2',
+    tabs: {
+      home: {
+        universalIdentifier: '9b32c611-4905-4981-aa90-a90f455f381b',
+        widgets: {
+          fields: {
+            universalIdentifier: '2c1407fa-2d00-45be-b489-a3d59b9a3d0d',
+          },
+        },
+      },
+      timeline: {
+        universalIdentifier: '50b1cd97-4160-4e65-a7e1-20c4cf04721c',
+        widgets: {
+          timeline: {
+            universalIdentifier: '87a99077-969b-458d-920f-3767e497c384',
+          },
+        },
+      },
+    },
+  },
   messageChannelMessageAssociationRecordPage: {
     universalIdentifier: '20202020-a111-4011-8011-a5c4a5110001',
     tabs: {
