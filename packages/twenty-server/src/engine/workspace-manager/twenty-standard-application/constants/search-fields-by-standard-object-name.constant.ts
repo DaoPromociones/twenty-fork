@@ -4,6 +4,12 @@ import { type AllStandardObjectFieldName } from 'src/engine/workspace-manager/tw
 import { type AllStandardObjectName } from 'src/engine/workspace-manager/twenty-standard-application/types/all-standard-object-name.type';
 
 export const SEARCH_FIELDS_BY_STANDARD_OBJECT_NAME = {
+  aduanaProjection: [
+    { name: 'eventId', type: FieldMetadataType.TEXT },
+    { name: 'eventType', type: FieldMetadataType.TEXT },
+    { name: 'sourceRecordId', type: FieldMetadataType.TEXT },
+    { name: 'evidenceId', type: FieldMetadataType.TEXT },
+  ],
   attachment: [{ name: 'name', type: FieldMetadataType.TEXT }],
   blocklist: [{ name: 'handle', type: FieldMetadataType.TEXT }],
   calendarChannelEventAssociation: [

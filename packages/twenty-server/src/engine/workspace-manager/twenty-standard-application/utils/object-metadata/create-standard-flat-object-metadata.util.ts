@@ -10,6 +10,39 @@ import {
 } from 'src/engine/workspace-manager/twenty-standard-application/utils/object-metadata/create-standard-object-flat-metadata.util';
 
 export const STANDARD_FLAT_OBJECT_METADATA_BUILDERS_BY_OBJECT_NAME = {
+  aduanaProjection: ({
+    now,
+    workspaceId,
+    standardObjectMetadataRelatedEntityIds,
+    twentyStandardApplicationId,
+    dependencyFlatEntityMaps,
+  }: Omit<
+    CreateStandardObjectArgs<'aduanaProjection'>,
+    'context' | 'objectName'
+  >) =>
+    createStandardObjectFlatMetadata({
+      objectName: 'aduanaProjection',
+      dependencyFlatEntityMaps,
+      context: {
+        universalIdentifier:
+          STANDARD_OBJECTS.aduanaProjection.universalIdentifier,
+        nameSingular: 'aduanaProjection',
+        namePlural: 'aduanaProjections',
+        labelSingular: i18nLabel(msg`Aduana Projection`),
+        labelPlural: i18nLabel(msg`Aduana Projections`),
+        description: i18nLabel(msg`Read-only Aduana projection event`),
+        icon: 'IconShieldCheck',
+        isSystem: true,
+        isAuditLogged: false,
+        isUICreatable: false,
+        isUIEditable: false,
+        labelIdentifierFieldMetadataName: 'eventId',
+      },
+      workspaceId,
+      standardObjectMetadataRelatedEntityIds,
+      twentyStandardApplicationId,
+      now,
+    }),
   attachment: ({
     now,
     workspaceId,

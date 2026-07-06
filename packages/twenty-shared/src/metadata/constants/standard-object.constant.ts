@@ -5,6 +5,127 @@
  */
 
 export const STANDARD_OBJECTS = {
+  aduanaProjection: {
+    universalIdentifier: '06b00f33-b9af-4a2c-9f50-e54e20746463',
+    fields: {
+      id: { universalIdentifier: '40ab8a3f-f3c9-44c9-a760-d15ac3377cbb' },
+      createdAt: {
+        universalIdentifier: '77aa2d8f-f5f1-49db-b7e6-9140c2b29c65',
+      },
+      updatedAt: {
+        universalIdentifier: 'ef8771e8-58d2-423a-b653-2e4a7420d07a',
+      },
+      deletedAt: {
+        universalIdentifier: '97d77d99-6438-4a9f-af72-2f4bf9e12ff3',
+      },
+      eventId: {
+        universalIdentifier: '680250e9-6396-4be3-90fd-e0828aab27c1',
+      },
+      eventType: {
+        universalIdentifier: '2a804455-5fc7-40a6-95c1-7f9ce020cf62',
+      },
+      occurredAt: {
+        universalIdentifier: '3fc541b6-7b66-431b-8d01-93cb79a49a36',
+      },
+      sourceRecordId: {
+        universalIdentifier: 'ddf35c1a-4837-4b92-b1f1-04e60517eb72',
+      },
+      evidenceId: {
+        universalIdentifier: 'a54f8b4c-85db-48f0-8bf6-c0bf3c74710a',
+      },
+      summary: {
+        universalIdentifier: '442e2f3f-6184-4a34-9349-e409258cfe3c',
+      },
+      ingestionStatus: {
+        universalIdentifier: 'f29214e8-a3e2-49ec-8459-8c9aa0145e38',
+      },
+      quarantineReason: {
+        universalIdentifier: '0d9b65a8-0b50-4302-a254-1e5a1304e6d9',
+      },
+      receivedAt: {
+        universalIdentifier: 'de96a054-86f7-43b7-ad4e-c452fc1d2456',
+      },
+      createdBy: {
+        universalIdentifier: '601d3213-e4a2-47c8-9d03-fcdf97971918',
+      },
+      updatedBy: {
+        universalIdentifier: '2ac73d50-372f-4c51-8541-b14deedcd8df',
+      },
+      position: {
+        universalIdentifier: '7c7c51bf-14b4-412d-a1cc-cc0fc07225ac',
+      },
+      searchVector: {
+        universalIdentifier: '986d0b9f-13d6-4d33-a7e2-54003d1b91e3',
+      },
+    },
+    indexes: {},
+    views: {
+      allAduanaProjections: {
+        universalIdentifier: 'd91a59bb-bda4-466f-bc12-7b4f7797de9a',
+        viewFields: {
+          eventId: {
+            universalIdentifier: 'f0d50a09-eb32-4c3e-ae82-1694cfcb935b',
+          },
+          eventType: {
+            universalIdentifier: '1685f6f3-b1bd-489c-bdcb-f37c93db1365',
+          },
+          occurredAt: {
+            universalIdentifier: 'df347cc2-21ac-41e4-9134-61a5a4205198',
+          },
+          sourceRecordId: {
+            universalIdentifier: 'b8746c09-320f-42b7-a93c-5ad840f982cc',
+          },
+          evidenceId: {
+            universalIdentifier: '95393f18-9773-4f26-bb47-f3df27f892a1',
+          },
+          summary: {
+            universalIdentifier: '0d4c06eb-d94c-48aa-9c2b-27a108194ee1',
+          },
+          ingestionStatus: {
+            universalIdentifier: '0b6cc4e2-f06d-437d-bcb8-ad9ac42c5a18',
+          },
+          quarantineReason: {
+            universalIdentifier: '79038489-1f7f-49cb-9fd6-3d5631f08d0c',
+          },
+          receivedAt: {
+            universalIdentifier: '147ac06b-553d-4e9f-83f9-d4192b9314f0',
+          },
+        },
+      },
+      aduanaProjectionRecordPageFields: {
+        universalIdentifier: 'cd86149e-6102-48a1-af06-b6a0a72c5b37',
+        viewFields: {
+          eventId: {
+            universalIdentifier: '8f023ff3-0c24-4ae3-a4c9-a7ec0a05553d',
+          },
+          eventType: {
+            universalIdentifier: '903e8c74-642c-49bb-8d24-138bb48aa985',
+          },
+          occurredAt: {
+            universalIdentifier: 'c2bdcbf2-2805-4d8e-af33-d45effef7d80',
+          },
+          sourceRecordId: {
+            universalIdentifier: '88c96dd1-5bd2-4949-a158-d2371811cc77',
+          },
+          evidenceId: {
+            universalIdentifier: 'b03d764b-652d-462a-bb38-3f2f374ac1d9',
+          },
+          summary: {
+            universalIdentifier: '4e941b12-163a-471d-8646-6ed357908e01',
+          },
+          ingestionStatus: {
+            universalIdentifier: '5a37a268-7bc9-4e66-a9c8-8223dad2c3c9',
+          },
+          quarantineReason: {
+            universalIdentifier: 'f55963cb-3e9c-4d5b-96ac-b29e5dd15b51',
+          },
+          receivedAt: {
+            universalIdentifier: '4e71a016-cb41-4764-89f2-e86284045af7',
+          },
+        },
+      },
+    },
+  },
   attachment: {
     universalIdentifier: '20202020-bd3d-4c60-8dca-571c71d4447a',
     fields: {
