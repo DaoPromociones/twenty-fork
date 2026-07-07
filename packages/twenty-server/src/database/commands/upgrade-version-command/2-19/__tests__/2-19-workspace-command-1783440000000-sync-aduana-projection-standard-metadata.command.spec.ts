@@ -37,7 +37,7 @@ const successResult = {
   status: 'success',
   hasSchemaMetadataChanged: true,
   workspaceMigration: { actions: [] },
-} as ValidateBuildAndRunWorkspaceMigrationResult;
+} as unknown as ValidateBuildAndRunWorkspaceMigrationResult;
 
 const buildFlatObjectMetadataMaps = (
   flatObjectMetadatas: FlatObjectMetadata[],
@@ -154,8 +154,15 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
       STANDARD_APPLICATION_UNIVERSAL_IDENTIFIER,
     );
 
-    const operations = migrationArgs
-      ?.allFlatEntityOperationByMetadataName as AllFlatEntityOperationByMetadataName;
+    const operations = migrationArgs?.allFlatEntityOperationByMetadataName as
+      | AllFlatEntityOperationByMetadataName
+      | undefined;
+
+    expect(operations).toBeDefined();
+
+    if (!operations) {
+      throw new Error('Expected metadata operations to be defined');
+    }
 
     expect(Object.keys(operations).sort()).toEqual([
       'commandMenuItem',
@@ -239,10 +246,27 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
     }
 
     const migrationArgs = validateBuildAndRunWorkspaceMigration.mock.calls[0]?.[0];
-    const operations = migrationArgs
-      ?.allFlatEntityOperationByMetadataName as AllFlatEntityOperationByMetadataName;
+    const operations = migrationArgs?.allFlatEntityOperationByMetadataName as
+      | AllFlatEntityOperationByMetadataName
+      | undefined;
 
-    expect(operations.objectMetadata.flatEntityToCreate).toEqual(
+    expect(operations).toBeDefined();
+
+    if (!operations) {
+      throw new Error('Expected metadata operations to be defined');
+    }
+
+    const objectMetadataOperations = operations.objectMetadata;
+    const commandMenuItemOperations = operations.commandMenuItem;
+
+    expect(objectMetadataOperations).toBeDefined();
+    expect(commandMenuItemOperations).toBeDefined();
+
+    if (!objectMetadataOperations || !commandMenuItemOperations) {
+      throw new Error('Expected object and command menu item operations');
+    }
+
+    expect(objectMetadataOperations.flatEntityToCreate).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           universalIdentifier:
@@ -252,7 +276,7 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
         }),
       ]),
     );
-    expect(operations.objectMetadata.flatEntityToUpdate).toEqual([
+    expect(objectMetadataOperations.flatEntityToUpdate).toEqual([
       expect.objectContaining({
         universalIdentifier: 'custom-aduana-projection-object',
         nameSingular: 'aduanaProjectionOld',
@@ -263,7 +287,7 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
         updatedAt: NOW,
       }),
     ]);
-    expect(operations.commandMenuItem.flatEntityToUpdate).toEqual([
+    expect(commandMenuItemOperations.flatEntityToUpdate).toEqual([
       expect.objectContaining({
         conditionalAvailabilityExpression:
           'targetObjectReadPermissions.aduanaProjectionOld',
