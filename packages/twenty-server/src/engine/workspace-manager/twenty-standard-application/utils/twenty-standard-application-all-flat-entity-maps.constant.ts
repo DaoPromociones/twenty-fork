@@ -185,7 +185,9 @@ export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
   });
 
   const standardPageLayoutMetadataRelatedEntityIds =
-    getStandardPageLayoutMetadataRelatedEntityIds();
+    getStandardPageLayoutMetadataRelatedEntityIds({
+      includeAduanaProjection,
+    });
 
   const flatPageLayoutMaps = buildStandardFlatPageLayoutMetadataMaps({
     now,

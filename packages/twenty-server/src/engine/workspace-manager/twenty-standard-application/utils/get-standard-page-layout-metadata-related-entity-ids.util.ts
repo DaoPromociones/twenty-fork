@@ -11,6 +11,10 @@ export type StandardPageLayoutMetadataRelatedEntityIds = Record<
   { id: string; tabs: TabIds }
 >;
 
+type GetStandardPageLayoutMetadataRelatedEntityIdsArgs = {
+  includeAduanaProjection?: boolean;
+};
+
 const computeWidgetIds = (widgets: Record<string, unknown>): WidgetIds => {
   const widgetIds: WidgetIds = {};
 
@@ -36,20 +40,28 @@ const computeTabIds = (
   return tabIds;
 };
 
-export const getStandardPageLayoutMetadataRelatedEntityIds =
-  (): StandardPageLayoutMetadataRelatedEntityIds => {
-    const result: StandardPageLayoutMetadataRelatedEntityIds = {};
+export const getStandardPageLayoutMetadataRelatedEntityIds = ({
+  includeAduanaProjection = false,
+}: GetStandardPageLayoutMetadataRelatedEntityIdsArgs = {}): StandardPageLayoutMetadataRelatedEntityIds => {
+  const result: StandardPageLayoutMetadataRelatedEntityIds = {};
 
-    for (const layoutName of Object.keys(STANDARD_PAGE_LAYOUTS)) {
-      const layout = STANDARD_PAGE_LAYOUTS[
-        layoutName as keyof typeof STANDARD_PAGE_LAYOUTS
-      ] as { tabs: Record<string, { widgets: Record<string, unknown> }> };
-
-      result[layoutName] = {
-        id: v4(),
-        tabs: computeTabIds(layout.tabs),
-      };
+  for (const layoutName of Object.keys(STANDARD_PAGE_LAYOUTS)) {
+    if (
+      layoutName === 'aduanaProjectionRecordPage' &&
+      !includeAduanaProjection
+    ) {
+      continue;
     }
 
-    return result;
-  };
+    const layout = STANDARD_PAGE_LAYOUTS[
+      layoutName as keyof typeof STANDARD_PAGE_LAYOUTS
+    ] as { tabs: Record<string, { widgets: Record<string, unknown> }> };
+
+    result[layoutName] = {
+      id: v4(),
+      tabs: computeTabIds(layout.tabs),
+    };
+  }
+
+  return result;
+};

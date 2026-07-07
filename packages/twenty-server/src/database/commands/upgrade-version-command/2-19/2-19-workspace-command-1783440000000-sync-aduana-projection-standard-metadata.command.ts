@@ -25,6 +25,7 @@ import { type FlatSearchFieldMetadata } from 'src/engine/metadata-modules/flat-s
 import { type FlatViewField } from 'src/engine/metadata-modules/flat-view-field/types/flat-view-field.type';
 import { type FlatView } from 'src/engine/metadata-modules/flat-view/types/flat-view.type';
 import { WorkspaceCacheService } from 'src/engine/workspace-cache/services/workspace-cache.service';
+import { getWorkspaceSchemaName } from 'src/engine/workspace-datasource/utils/get-workspace-schema-name.util';
 import { computeTwentyStandardApplicationAllFlatEntityMaps } from 'src/engine/workspace-manager/twenty-standard-application/utils/twenty-standard-application-all-flat-entity-maps.constant';
 import { WorkspaceMigrationValidateBuildAndRunService } from 'src/engine/workspace-manager/workspace-migration/services/workspace-migration-validate-build-and-run-service';
 
@@ -220,9 +221,32 @@ export class SyncAduanaProjectionStandardMetadataCommand extends ActiveOrSuspend
 
   override async runOnWorkspace({
     workspaceId,
+    dataSource,
     options,
   }: RunOnWorkspaceArgs): Promise<void> {
     const isDryRun = options.dryRun ?? false;
+
+    if (!isDefined(dataSource)) {
+      this.logger.log(`No data source for workspace ${workspaceId}, skipping`);
+
+      return;
+    }
+
+    const schemaName = getWorkspaceSchemaName(workspaceId);
+    const schemaExistsResult = await dataSource.coreDataSource.query<
+      { exists: boolean }[]
+    >(
+      'SELECT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = $1)',
+      [schemaName],
+    );
+
+    if (schemaExistsResult[0]?.exists !== true) {
+      this.logger.log(
+        `Workspace schema ${schemaName} does not exist for workspace ${workspaceId}, skipping`,
+      );
+
+      return;
+    }
 
     const {
       flatObjectMetadataMaps,

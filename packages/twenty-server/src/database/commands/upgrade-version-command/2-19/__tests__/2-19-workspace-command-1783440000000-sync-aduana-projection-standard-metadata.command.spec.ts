@@ -78,6 +78,7 @@ const buildFlatCommandMenuItemMaps = (
 describe('SyncAduanaProjectionStandardMetadataCommand', () => {
   let command: SyncAduanaProjectionStandardMetadataCommand;
   let getOrRecompute: jest.Mock;
+  let dataSource: { coreDataSource: { query: jest.Mock } };
   let validateBuildAndRunWorkspaceMigration: jest.Mock<
     Promise<ValidateBuildAndRunWorkspaceMigrationResult>,
     [ValidateBuildAndRunWorkspaceMigrationArgs]
@@ -97,6 +98,11 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
       flatPageLayoutWidgetMaps: createEmptyFlatEntityMaps(),
       flatCommandMenuItemMaps: createEmptyFlatEntityMaps(),
     });
+    dataSource = {
+      coreDataSource: {
+        query: jest.fn().mockResolvedValue([{ exists: true }]),
+      },
+    };
 
     const findWorkspaceTwentyStandardAndCustomApplicationOrThrow = jest
       .fn()
@@ -128,6 +134,7 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
   it('builds complete AduanaProjection metadata operations including searchFieldMetadata', async () => {
     await command.runOnWorkspace({
       workspaceId: WORKSPACE_ID,
+      dataSource: dataSource as never,
       options: {},
       index: 0,
       total: 1,
@@ -237,6 +244,7 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
     try {
       await command.runOnWorkspace({
         workspaceId: WORKSPACE_ID,
+        dataSource: dataSource as never,
         options: {},
         index: 0,
         total: 1,
@@ -303,5 +311,20 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
     ) as unknown;
 
     expect(providers).toContain(SyncAduanaProjectionStandardMetadataCommand);
+  });
+
+  it('skips workspaces without a physical workspace schema', async () => {
+    dataSource.coreDataSource.query.mockResolvedValueOnce([{ exists: false }]);
+
+    await command.runOnWorkspace({
+      workspaceId: WORKSPACE_ID,
+      dataSource: dataSource as never,
+      options: {},
+      index: 0,
+      total: 1,
+    });
+
+    expect(getOrRecompute).not.toHaveBeenCalled();
+    expect(validateBuildAndRunWorkspaceMigration).not.toHaveBeenCalled();
   });
 });
