@@ -28,6 +28,10 @@ export type StandardObjectMetadataRelatedEntityIds = {
   };
 };
 
+type GetStandardObjectMetadataRelatedEntityIdsArgs = {
+  includeAduanaProjection?: boolean;
+};
+
 const computeStandardViewObjectIds = <O extends AllStandardObjectName>({
   objectName,
 }: {
@@ -127,12 +131,18 @@ const computeStandardViewObjectIds = <O extends AllStandardObjectName>({
 
 // TODO remove once we have refactored the builder to iterate over universalIdentifier only
 export const getStandardObjectMetadataRelatedEntityIds =
-  (): StandardObjectMetadataRelatedEntityIds => {
+  ({
+    includeAduanaProjection = false,
+  }: GetStandardObjectMetadataRelatedEntityIdsArgs = {}): StandardObjectMetadataRelatedEntityIds => {
     const result = {} as StandardObjectMetadataRelatedEntityIds;
 
     for (const objectName of Object.keys(
       STANDARD_OBJECTS,
     ) as AllStandardObjectName[]) {
+      if (objectName === 'aduanaProjection' && !includeAduanaProjection) {
+        continue;
+      }
+
       const fieldNames = Object.keys(
         STANDARD_OBJECTS[objectName].fields,
       ) as AllStandardObjectFieldName<typeof objectName>[];

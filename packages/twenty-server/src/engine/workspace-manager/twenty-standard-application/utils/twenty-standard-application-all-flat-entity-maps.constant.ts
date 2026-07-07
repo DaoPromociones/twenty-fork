@@ -44,7 +44,9 @@ export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
   idByUniversalIdentifierByMetadataName: IdByUniversalIdentifierByMetadataName;
 } => {
   const standardObjectMetadataRelatedEntityIds =
-    getStandardObjectMetadataRelatedEntityIds();
+    getStandardObjectMetadataRelatedEntityIds({
+      includeAduanaProjection,
+    });
 
   const flatObjectMetadataMaps = buildStandardFlatObjectMetadataMaps({
     now,

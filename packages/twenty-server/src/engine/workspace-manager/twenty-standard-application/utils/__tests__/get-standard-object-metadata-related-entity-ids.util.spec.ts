@@ -22,4 +22,18 @@ describe('getStandardObjectMetadataRelatedEntityIds', () => {
 
     expect(result).toMatchSnapshot();
   });
+
+  it('should not include AduanaProjection by default', () => {
+    const result = getStandardObjectMetadataRelatedEntityIds();
+
+    expect(result).not.toHaveProperty('aduanaProjection');
+  });
+
+  it('should include AduanaProjection when explicitly requested', () => {
+    const result = getStandardObjectMetadataRelatedEntityIds({
+      includeAduanaProjection: true,
+    });
+
+    expect(result).toHaveProperty('aduanaProjection');
+  });
 });
