@@ -25,6 +25,7 @@ describe('AduanaProjection core standard metadata build', () => {
     expect(aduanaProjection).toMatchObject({
       nameSingular: 'aduanaProjection',
       isSystem: true,
+      isSearchable: true,
       isUICreatable: false,
       isUIEditable: false,
       labelIdentifierFieldMetadataId:
