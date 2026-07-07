@@ -12,17 +12,22 @@ import {
 export type BuildStandardFlatPageLayoutTabMetadataMapsArgs = Omit<
   CreateStandardPageLayoutTabArgs,
   'context'
->;
+> & { includeAduanaProjection?: boolean };
 
 export const buildStandardFlatPageLayoutTabMetadataMaps = ({
   now,
   workspaceId,
   twentyStandardApplicationId,
   standardPageLayoutMetadataRelatedEntityIds,
+  includeAduanaProjection = false,
 }: BuildStandardFlatPageLayoutTabMetadataMapsArgs): FlatEntityMaps<FlatPageLayoutTab> => {
   const allPageLayoutTabMetadatas: FlatPageLayoutTab[] = [];
 
   for (const layoutName of Object.keys(STANDARD_PAGE_LAYOUTS)) {
+    if (layoutName === 'aduanaProjectionRecordPage' && !includeAduanaProjection) {
+      continue;
+    }
+
     const layout = STANDARD_PAGE_LAYOUTS[
       layoutName as keyof typeof STANDARD_PAGE_LAYOUTS
     ] as { tabs: Record<string, StandardPageLayoutTabConfig> };

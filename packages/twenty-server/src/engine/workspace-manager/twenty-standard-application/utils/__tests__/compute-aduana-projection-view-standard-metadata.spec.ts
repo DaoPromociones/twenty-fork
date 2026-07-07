@@ -26,6 +26,7 @@ const APPROVED_ADUANA_PROJECTION_FIELD_NAMES = [
 describe('AduanaProjection view and page layout standard metadata build', () => {
   const { allFlatEntityMaps } =
     computeTwentyStandardApplicationAllFlatEntityMaps({
+      includeAduanaProjection: true,
       now: NOW,
       workspaceId: WORKSPACE_ID,
       twentyStandardApplicationId: TWENTY_STANDARD_APPLICATION_ID,

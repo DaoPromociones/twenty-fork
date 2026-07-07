@@ -23,7 +23,7 @@ import { findObjectNameByUniversalIdentifier } from 'src/engine/workspace-manage
 export type BuildStandardFlatPageLayoutWidgetMetadataMapsArgs = Omit<
   CreateStandardPageLayoutWidgetArgs,
   'context'
->;
+> & { includeAduanaProjection?: boolean };
 
 const RECORD_PAGE_LAYOUT_WIDGET_TYPES = [
   WidgetType.FIELDS,
@@ -249,10 +249,18 @@ const computeRecordPageWidgets = ({
   twentyStandardApplicationId,
   standardObjectMetadataRelatedEntityIds,
   standardPageLayoutMetadataRelatedEntityIds,
+  includeAduanaProjection = false,
 }: BuildStandardFlatPageLayoutWidgetMetadataMapsArgs): FlatPageLayoutWidget[] => {
   const allWidgets: FlatPageLayoutWidget[] = [];
 
   for (const layoutName of Object.keys(STANDARD_RECORD_PAGE_LAYOUTS)) {
+    if (
+      layoutName === 'aduanaProjectionRecordPage' &&
+      !includeAduanaProjection
+    ) {
+      continue;
+    }
+
     const layout = STANDARD_RECORD_PAGE_LAYOUTS[
       layoutName as keyof typeof STANDARD_RECORD_PAGE_LAYOUTS
     ] as StandardRecordPageLayoutConfig;

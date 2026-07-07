@@ -8,14 +8,20 @@ import { STANDARD_FLAT_PAGE_LAYOUT_BUILDERS_BY_LAYOUT_NAME } from 'src/engine/wo
 export type BuildStandardFlatPageLayoutMetadataMapsArgs = Omit<
   CreateStandardPageLayoutArgs,
   'context'
->;
+> & { includeAduanaProjection?: boolean };
 
 export const buildStandardFlatPageLayoutMetadataMaps = (
   args: BuildStandardFlatPageLayoutMetadataMapsArgs,
 ): FlatEntityMaps<FlatPageLayout> => {
-  const allPageLayoutMetadatas: FlatPageLayout[] = Object.values(
+  const allPageLayoutMetadatas: FlatPageLayout[] = Object.entries(
     STANDARD_FLAT_PAGE_LAYOUT_BUILDERS_BY_LAYOUT_NAME,
-  ).map((builder) => builder(args));
+  )
+    .filter(
+      ([layoutName]) =>
+        layoutName !== 'aduanaProjectionRecordPage' ||
+        args.includeAduanaProjection,
+    )
+    .map(([, builder]) => builder(args));
 
   let flatPageLayoutMaps = createEmptyFlatEntityMaps();
 

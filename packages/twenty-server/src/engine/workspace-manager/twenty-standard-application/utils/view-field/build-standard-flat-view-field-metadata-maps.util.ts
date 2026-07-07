@@ -72,7 +72,7 @@ const STANDARD_FLAT_VIEW_FIELD_METADATA_BUILDERS_BY_OBJECT_NAME = {
 export type BuildStandardFlatViewFieldMetadataMapsArgs = Omit<
   CreateStandardViewFieldArgs,
   'context' | 'objectName'
->;
+> & { includeAduanaProjection?: boolean };
 
 export const buildStandardFlatViewFieldMetadataMaps = (
   args: BuildStandardFlatViewFieldMetadataMapsArgs,
@@ -83,17 +83,22 @@ export const buildStandardFlatViewFieldMetadataMaps = (
     Object.keys(
       STANDARD_FLAT_VIEW_FIELD_METADATA_BUILDERS_BY_OBJECT_NAME,
     ) as (keyof typeof STANDARD_FLAT_VIEW_FIELD_METADATA_BUILDERS_BY_OBJECT_NAME)[]
-  ).flatMap((objectName) => {
-    const builder: StandardViewFieldBuilder<typeof objectName> =
-      STANDARD_FLAT_VIEW_FIELD_METADATA_BUILDERS_BY_OBJECT_NAME[objectName];
+  )
+    .filter(
+      (objectName) =>
+        objectName !== 'aduanaProjection' || args.includeAduanaProjection,
+    )
+    .flatMap((objectName) => {
+      const builder: StandardViewFieldBuilder<typeof objectName> =
+        STANDARD_FLAT_VIEW_FIELD_METADATA_BUILDERS_BY_OBJECT_NAME[objectName];
 
-    const result = builder({
-      ...args,
-      objectName,
+      const result = builder({
+        ...args,
+        objectName,
+      });
+
+      return Object.values(result);
     });
-
-    return Object.values(result);
-  });
 
   let flatViewFieldMaps = createEmptyFlatEntityMaps();
 

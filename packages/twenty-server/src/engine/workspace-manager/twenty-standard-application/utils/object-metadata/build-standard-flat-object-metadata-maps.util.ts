@@ -6,11 +6,18 @@ import { STANDARD_FLAT_OBJECT_METADATA_BUILDERS_BY_OBJECT_NAME } from 'src/engin
 import { type CreateStandardObjectArgs } from 'src/engine/workspace-manager/twenty-standard-application/utils/object-metadata/create-standard-object-flat-metadata.util';
 
 export const buildStandardFlatObjectMetadataMaps = (
-  args: Omit<CreateStandardObjectArgs, 'context' | 'objectName'>,
+  args: Omit<CreateStandardObjectArgs, 'context' | 'objectName'> & {
+    includeAduanaProjection?: boolean;
+  },
 ): FlatEntityMaps<FlatObjectMetadata> => {
-  const allObjectMetadatas: FlatObjectMetadata[] = Object.values(
+  const allObjectMetadatas: FlatObjectMetadata[] = Object.entries(
     STANDARD_FLAT_OBJECT_METADATA_BUILDERS_BY_OBJECT_NAME,
-  ).map((builder) => builder(args));
+  )
+    .filter(
+      ([objectName]) =>
+        objectName !== 'aduanaProjection' || args.includeAduanaProjection,
+    )
+    .map(([, builder]) => builder(args));
 
   let flatObjectMetadataMaps = createEmptyFlatEntityMaps();
 

@@ -30,12 +30,14 @@ export type ComputeTwentyStandardApplicationAllFlatEntityMapsArgs = {
   now: string;
   workspaceId: string;
   twentyStandardApplicationId: string;
+  includeAduanaProjection?: boolean;
 };
 
 export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
   now,
   workspaceId,
   twentyStandardApplicationId,
+  includeAduanaProjection = false,
 }: ComputeTwentyStandardApplicationAllFlatEntityMapsArgs): {
   allFlatEntityMaps: TwentyStandardAllFlatEntityMaps;
   // TODO remove once all metadatas has fully been universal migrated
@@ -49,6 +51,7 @@ export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
     workspaceId,
     standardObjectMetadataRelatedEntityIds,
     twentyStandardApplicationId,
+    includeAduanaProjection,
     dependencyFlatEntityMaps: {
       flatFieldMetadataMaps: createEmptyFlatEntityMaps(),
     },
@@ -62,6 +65,7 @@ export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
       flatObjectMetadataMaps,
     },
     twentyStandardApplicationId,
+    includeAduanaProjection,
   });
 
   const flatIndexMaps = buildStandardFlatIndexMetadataMaps({
@@ -84,6 +88,7 @@ export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
     standardObjectMetadataRelatedEntityIds,
     workspaceId,
     twentyStandardApplicationId,
+    includeAduanaProjection,
   });
 
   const flatViewMaps = buildStandardFlatViewMetadataMaps({
@@ -95,6 +100,7 @@ export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
     standardObjectMetadataRelatedEntityIds,
     twentyStandardApplicationId,
     workspaceId,
+    includeAduanaProjection,
   });
 
   const flatViewGroupMaps = buildStandardFlatViewGroupMetadataMaps({
@@ -143,6 +149,7 @@ export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
     standardObjectMetadataRelatedEntityIds,
     twentyStandardApplicationId,
     workspaceId,
+    includeAduanaProjection,
   });
 
   const flatRoleMaps = buildStandardFlatRoleMetadataMaps({
@@ -186,6 +193,7 @@ export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
     twentyStandardApplicationId,
     standardObjectMetadataRelatedEntityIds,
     standardPageLayoutMetadataRelatedEntityIds,
+    includeAduanaProjection,
   });
 
   const flatPageLayoutTabMaps = buildStandardFlatPageLayoutTabMetadataMaps({
@@ -193,6 +201,7 @@ export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
     workspaceId,
     twentyStandardApplicationId,
     standardPageLayoutMetadataRelatedEntityIds,
+    includeAduanaProjection,
   });
 
   const flatPageLayoutWidgetMaps =
@@ -202,6 +211,7 @@ export const computeTwentyStandardApplicationAllFlatEntityMaps = ({
       twentyStandardApplicationId,
       standardObjectMetadataRelatedEntityIds,
       standardPageLayoutMetadataRelatedEntityIds,
+      includeAduanaProjection,
     });
 
   const flatNavigationMenuItemMaps = buildStandardFlatNavigationMenuItemMaps({

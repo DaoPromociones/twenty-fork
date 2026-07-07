@@ -34,6 +34,7 @@ const INTERNAL_STANDARD_FIELD_NAMES = [
 describe('AduanaProjection field standard metadata build', () => {
   const { allFlatEntityMaps } =
     computeTwentyStandardApplicationAllFlatEntityMaps({
+      includeAduanaProjection: true,
       now: NOW,
       workspaceId: WORKSPACE_ID,
       twentyStandardApplicationId: TWENTY_STANDARD_APPLICATION_ID,

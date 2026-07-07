@@ -14,7 +14,36 @@ describe('AduanaProjection core standard metadata build', () => {
       now: NOW,
       workspaceId: WORKSPACE_ID,
       twentyStandardApplicationId: TWENTY_STANDARD_APPLICATION_ID,
+      includeAduanaProjection: true,
     });
+
+  it('does not register aduanaProjection in the default standard application build', () => {
+    const { allFlatEntityMaps: defaultAllFlatEntityMaps } =
+      computeTwentyStandardApplicationAllFlatEntityMaps({
+        now: NOW,
+        workspaceId: WORKSPACE_ID,
+        twentyStandardApplicationId: TWENTY_STANDARD_APPLICATION_ID,
+      });
+
+    expect(
+      defaultAllFlatEntityMaps.flatObjectMetadataMaps.byUniversalIdentifier[
+        STANDARD_OBJECTS.aduanaProjection.universalIdentifier
+      ],
+    ).toBeUndefined();
+    expect(
+      Object.values(
+        defaultAllFlatEntityMaps.flatSearchFieldMetadataMaps
+          .byUniversalIdentifier,
+      ),
+    ).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          objectMetadataUniversalIdentifier:
+            STANDARD_OBJECTS.aduanaProjection.universalIdentifier,
+        }),
+      ]),
+    );
+  });
 
   it('builds the aduanaProjection object as UI read-only projection metadata', () => {
     const aduanaProjection =

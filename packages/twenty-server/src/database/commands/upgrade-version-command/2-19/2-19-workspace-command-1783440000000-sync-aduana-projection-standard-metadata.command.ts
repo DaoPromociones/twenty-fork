@@ -258,6 +258,7 @@ export class SyncAduanaProjectionStandardMetadataCommand extends ActiveOrSuspend
         now,
         workspaceId,
         twentyStandardApplicationId: twentyStandardFlatApplication.id,
+        includeAduanaProjection: true,
       });
 
     const objectMetadataRenameUpdates =

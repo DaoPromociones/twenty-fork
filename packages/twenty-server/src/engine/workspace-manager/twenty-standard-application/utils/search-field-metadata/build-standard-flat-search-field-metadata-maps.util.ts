@@ -7,19 +7,26 @@ import { buildStandardFlatSearchFieldMetadatas } from 'src/engine/workspace-mana
 import { type CreateStandardSearchFieldArgs } from 'src/engine/workspace-manager/twenty-standard-application/utils/search-field-metadata/create-standard-search-field-flat-metadata.util';
 
 export const buildStandardFlatSearchFieldMetadataMaps = (
-  args: Omit<CreateStandardSearchFieldArgs, 'context' | 'objectName'>,
+  args: Omit<CreateStandardSearchFieldArgs, 'context' | 'objectName'> & {
+    includeAduanaProjection?: boolean;
+  },
 ): FlatEntityMaps<FlatSearchFieldMetadata> => {
   const allSearchFieldMetadatas: FlatSearchFieldMetadata[] = (
     Object.keys(
       SEARCH_FIELDS_BY_STANDARD_OBJECT_NAME,
     ) as (keyof typeof SEARCH_FIELDS_BY_STANDARD_OBJECT_NAME)[]
-  ).flatMap((objectName) =>
-    buildStandardFlatSearchFieldMetadatas({
-      ...args,
-      objectName,
-      searchFields: SEARCH_FIELDS_BY_STANDARD_OBJECT_NAME[objectName],
-    }),
-  );
+  )
+    .filter(
+      (objectName) =>
+        objectName !== 'aduanaProjection' || args.includeAduanaProjection,
+    )
+    .flatMap((objectName) =>
+      buildStandardFlatSearchFieldMetadatas({
+        ...args,
+        objectName,
+        searchFields: SEARCH_FIELDS_BY_STANDARD_OBJECT_NAME[objectName],
+      }),
+    );
 
   let flatSearchFieldMetadataMaps = createEmptyFlatEntityMaps();
 
