@@ -130,44 +130,43 @@ const computeStandardViewObjectIds = <O extends AllStandardObjectName>({
 };
 
 // TODO remove once we have refactored the builder to iterate over universalIdentifier only
-export const getStandardObjectMetadataRelatedEntityIds =
-  ({
-    includeAduanaProjection = false,
-  }: GetStandardObjectMetadataRelatedEntityIdsArgs = {}): StandardObjectMetadataRelatedEntityIds => {
-    const result = {} as StandardObjectMetadataRelatedEntityIds;
+export const getStandardObjectMetadataRelatedEntityIds = ({
+  includeAduanaProjection = false,
+}: GetStandardObjectMetadataRelatedEntityIdsArgs = {}): StandardObjectMetadataRelatedEntityIds => {
+  const result = {} as StandardObjectMetadataRelatedEntityIds;
 
-    for (const objectName of Object.keys(
-      STANDARD_OBJECTS,
-    ) as AllStandardObjectName[]) {
-      if (objectName === 'aduanaProjection' && !includeAduanaProjection) {
-        continue;
-      }
-
-      const fieldNames = Object.keys(
-        STANDARD_OBJECTS[objectName].fields,
-      ) as AllStandardObjectFieldName<typeof objectName>[];
-
-      const fieldIds = {} as Record<
-        AllStandardObjectFieldName<typeof objectName>,
-        { id: string }
-      >;
-
-      for (const fieldName of fieldNames) {
-        fieldIds[fieldName] = { id: v4() };
-      }
-
-      const viewIds = computeStandardViewObjectIds({
-        objectName,
-      });
-
-      result[objectName] = {
-        // @ts-expect-error ignore this
-        fields: fieldIds,
-        id: v4(),
-        // @ts-expect-error ignore this
-        views: viewIds,
-      };
+  for (const objectName of Object.keys(
+    STANDARD_OBJECTS,
+  ) as AllStandardObjectName[]) {
+    if (objectName === 'aduanaProjection' && !includeAduanaProjection) {
+      continue;
     }
 
-    return result;
-  };
+    const fieldNames = Object.keys(
+      STANDARD_OBJECTS[objectName].fields,
+    ) as AllStandardObjectFieldName<typeof objectName>[];
+
+    const fieldIds = {} as Record<
+      AllStandardObjectFieldName<typeof objectName>,
+      { id: string }
+    >;
+
+    for (const fieldName of fieldNames) {
+      fieldIds[fieldName] = { id: v4() };
+    }
+
+    const viewIds = computeStandardViewObjectIds({
+      objectName,
+    });
+
+    result[objectName] = {
+      // @ts-expect-error ignore this
+      fields: fieldIds,
+      id: v4(),
+      // @ts-expect-error ignore this
+      views: viewIds,
+    };
+  }
+
+  return result;
+};
