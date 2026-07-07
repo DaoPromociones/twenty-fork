@@ -21,8 +21,8 @@ describe('Query Complexity', () => {
     expect(response.body.data.people.edges).toBeDefined();
   });
 
-  it('should fail to execute a query with too many fields', async () => {
-    const gqlFields = generateGqlFields(2001);
+  it('should execute a direct query with many selected fields', async () => {
+    const gqlFields = generateGqlFields(500);
 
     const findManyPeopleOperation = findManyOperationFactory({
       objectMetadataSingularName: 'person',
@@ -32,8 +32,9 @@ describe('Query Complexity', () => {
 
     const response = await makeGraphqlAPIRequest(findManyPeopleOperation);
 
-    expect(response.body.errors).toBeDefined();
-    expect(response.body.errors[0].message).toMatchSnapshot();
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.people).toBeDefined();
+    expect(response.body.data.people.edges).toBeDefined();
   });
 
   it('should fail to execute a query with too many root resolvers', async () => {

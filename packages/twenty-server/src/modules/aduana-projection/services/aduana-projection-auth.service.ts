@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 import { AduanaProjectionSecretResolverService } from 'src/modules/aduana-projection/services/aduana-projection-secret-resolver.service';
 import {
@@ -48,6 +48,7 @@ export class AduanaProjectionAuthService {
 
   constructor(
     private readonly secretResolver: AduanaProjectionSecretResolverService,
+    @Optional()
     private readonly getNow: () => Date = () => new Date(),
   ) {}
 

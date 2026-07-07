@@ -100,6 +100,21 @@ describe('AduanaProjection field standard metadata build', () => {
     }
   });
 
+  it('uses the expected external ingestion status metadata contract', () => {
+    const ingestionStatusField =
+      allFlatEntityMaps.flatFieldMetadataMaps.byUniversalIdentifier[
+        STANDARD_OBJECTS.aduanaProjection.fields.ingestionStatus
+          .universalIdentifier
+      ];
+
+    expect(ingestionStatusField?.defaultValue).toBe("'ACCEPTED'");
+    expect(ingestionStatusField?.options?.map(({ value }) => value)).toEqual([
+      'ACCEPTED',
+      'REPLAYED',
+      'QUARANTINED',
+    ]);
+  });
+
   it('uses relative display format for standard timestamp fields', () => {
     const fieldsByUniversalIdentifier =
       allFlatEntityMaps.flatFieldMetadataMaps.byUniversalIdentifier;

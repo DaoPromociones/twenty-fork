@@ -24,7 +24,10 @@ export const buildStandardFlatPageLayoutTabMetadataMaps = ({
   const allPageLayoutTabMetadatas: FlatPageLayoutTab[] = [];
 
   for (const layoutName of Object.keys(STANDARD_PAGE_LAYOUTS)) {
-    if (layoutName === 'aduanaProjectionRecordPage' && !includeAduanaProjection) {
+    if (
+      layoutName === 'aduanaProjectionRecordPage' &&
+      !includeAduanaProjection
+    ) {
       continue;
     }
 
