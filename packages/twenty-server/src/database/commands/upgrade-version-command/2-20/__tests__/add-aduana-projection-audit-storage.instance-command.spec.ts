@@ -1,4 +1,4 @@
-import { AddAduanaProjectionAuditStorageFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-20/2-20-instance-command-fast-1825000001000-add-aduana-projection-audit-storage';
+import { AddAduanaProjectionAuditStorageFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-20/2-20-instance-command-fast-1783413452174-add-aduana-projection-audit-storage';
 
 describe('AddAduanaProjectionAuditStorageFastInstanceCommand', () => {
   it('should create audit storage indexes and rollback them', async () => {
