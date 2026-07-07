@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 
 import { AduanaProjectionSecretResolverService } from 'src/modules/aduana-projection/services/aduana-projection-secret-resolver.service';
 import {
@@ -27,6 +27,8 @@ type VerifyAduanaProjectionRequestInput = {
 
 const MAX_TIMESTAMP_SKEW_IN_MS = 5 * 60 * 1000;
 
+export const ADUANA_PROJECTION_GET_NOW = 'ADUANA_PROJECTION_GET_NOW';
+
 const getHeader = (
   headers: AduanaProjectionAuthHeaders,
   name: string,
@@ -48,6 +50,8 @@ export class AduanaProjectionAuthService {
 
   constructor(
     private readonly secretResolver: AduanaProjectionSecretResolverService,
+    @Optional()
+    @Inject(ADUANA_PROJECTION_GET_NOW)
     private readonly getNow: () => Date = () => new Date(),
   ) {}
 
