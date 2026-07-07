@@ -2,8 +2,8 @@ import { TWENTY_STANDARD_APPLICATION_UNIVERSAL_IDENTIFIER } from 'twenty-shared/
 import { STANDARD_OBJECTS } from 'twenty-shared/metadata';
 
 import { type WorkspaceIteratorService } from 'src/database/commands/command-runners/workspace-iterator.service';
-import { SyncAduanaProjectionStandardMetadataCommand } from 'src/database/commands/upgrade-version-command/2-20/2-20-workspace-command-1825000002000-sync-aduana-projection-standard-metadata.command';
-import { V2_20_UpgradeVersionCommandModule } from 'src/database/commands/upgrade-version-command/2-20/2-20-upgrade-version-command.module';
+import { SyncAduanaProjectionStandardMetadataCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-workspace-command-1783440000000-sync-aduana-projection-standard-metadata.command';
+import { V2_19_UpgradeVersionCommandModule } from 'src/database/commands/upgrade-version-command/2-19/2-19-upgrade-version-command.module';
 import { type ApplicationService } from 'src/engine/core-modules/application/application.service';
 import { type FlatCommandMenuItem } from 'src/engine/metadata-modules/flat-command-menu-item/types/flat-command-menu-item.type';
 import { buildNavigationFlatCommandMenuItem } from 'src/engine/metadata-modules/flat-command-menu-item/utils/build-navigation-flat-command-menu-item.util';
@@ -272,10 +272,10 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
     ]);
   });
 
-  it('registers the workspace command in the 2.20 upgrade module', () => {
+  it('registers the workspace command in the 2.19 upgrade module', () => {
     const providers = Reflect.getMetadata(
       'providers',
-      V2_20_UpgradeVersionCommandModule,
+      V2_19_UpgradeVersionCommandModule,
     ) as unknown;
 
     expect(providers).toContain(SyncAduanaProjectionStandardMetadataCommand);

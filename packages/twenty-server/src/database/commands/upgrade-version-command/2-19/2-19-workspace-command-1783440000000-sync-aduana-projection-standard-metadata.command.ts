@@ -202,9 +202,9 @@ const ADUANA_PROJECTION_PAGE_LAYOUT_WIDGET_UNIVERSAL_IDENTIFIERS = [
     .timeline.widgets.timeline.universalIdentifier,
 ];
 
-@RegisteredWorkspaceCommand('2.20.0', 1825000002000)
+@RegisteredWorkspaceCommand('2.19.0', 1783440000000)
 @Command({
-  name: 'upgrade:2-20:sync-aduana-projection-standard-metadata',
+  name: 'upgrade:2-19:sync-aduana-projection-standard-metadata',
   description:
     'Create the AduanaProjection standard metadata in existing workspaces',
 })
