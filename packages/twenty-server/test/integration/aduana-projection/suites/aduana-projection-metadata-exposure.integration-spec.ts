@@ -20,7 +20,6 @@ import { type FlatPageLayout } from 'src/engine/metadata-modules/flat-page-layou
 import { type FlatSearchFieldMetadata } from 'src/engine/metadata-modules/flat-search-field-metadata/types/flat-search-field-metadata.type';
 import { type FlatViewField } from 'src/engine/metadata-modules/flat-view-field/types/flat-view-field.type';
 import { type FlatView } from 'src/engine/metadata-modules/flat-view/types/flat-view.type';
-import { WorkspaceCacheService } from 'src/engine/workspace-cache/services/workspace-cache.service';
 import { type WorkspaceCacheKeyName } from 'src/engine/workspace-cache/types/workspace-cache-key.type';
 import { SEED_APPLE_WORKSPACE_ID } from 'src/engine/workspace-manager/dev-seeder/core/constants/seeder-workspaces.constant';
 import { computeTwentyStandardApplicationAllFlatEntityMaps } from 'src/engine/workspace-manager/twenty-standard-application/utils/twenty-standard-application-all-flat-entity-maps.constant';
@@ -34,6 +33,33 @@ type WorkspaceMigrationValidateBuildAndRunServiceLike = {
   }) => Promise<
     { status: 'success' } | { status: 'fail'; [key: string]: unknown }
   >;
+};
+
+type AduanaProjectionWorkspaceCacheMaps = {
+  flatObjectMetadataMaps: FlatEntityMaps<FlatObjectMetadata>;
+  flatFieldMetadataMaps: FlatEntityMaps<FlatFieldMetadata>;
+  flatSearchFieldMetadataMaps: FlatEntityMaps<FlatSearchFieldMetadata>;
+  flatViewMaps: FlatEntityMaps<FlatView>;
+  flatViewFieldMaps: FlatEntityMaps<FlatViewField>;
+  flatPageLayoutMaps: FlatEntityMaps<FlatPageLayout>;
+  flatPageLayoutTabMaps: FlatEntityMaps<FlatPageLayoutTab>;
+  flatPageLayoutWidgetMaps: FlatEntityMaps<FlatPageLayoutWidget>;
+};
+
+type WorkspaceCacheServiceLike = {
+  getOrRecompute: (
+    workspaceId: string,
+    cacheKeyNames: WorkspaceCacheKeyName[],
+  ) => Promise<AduanaProjectionWorkspaceCacheMaps>;
+  invalidateAndRecompute: (
+    workspaceId: string,
+    cacheKeyNames: WorkspaceCacheKeyName[],
+  ) => Promise<void>;
+};
+
+type NestProviderRef = {
+  instance?: unknown;
+  metatype?: { name?: string };
 };
 
 type AduanaProjectionDependentMetadataCompleteness = {
@@ -128,13 +154,8 @@ const ADUANA_PROJECTION_PAGE_LAYOUT_WIDGET_UNIVERSAL_IDENTIFIERS = [
     .timeline.widgets.timeline.universalIdentifier,
 ];
 
-const ADUANA_PROJECTION_DELETABLE_METADATA_TABLE_NAMES: SyncableMetadataTableName[] = [
-  'view',
-  'viewField',
-  'pageLayout',
-  'pageLayoutTab',
-  'pageLayoutWidget',
-];
+const ADUANA_PROJECTION_DELETABLE_METADATA_TABLE_NAMES: SyncableMetadataTableName[] =
+  ['view', 'viewField', 'pageLayout', 'pageLayoutTab', 'pageLayoutWidget'];
 
 const FORBIDDEN_ADUANA_PROJECTION_FIELD_NAMES = [
   'rawEnvelope',
@@ -350,33 +371,38 @@ const selectTwentyStandardFlatApplication = async () => {
   return row as { id: string; universalIdentifier: string };
 };
 
-const getWorkspaceMigrationValidateBuildAndRunService = () => {
+const getProviderInstanceByMetatypeName = <TProvider>(metatypeName: string) => {
   const modules = (
     global.app as unknown as {
       container: {
-        getModules: () => Map<string, { providers: Map<string, unknown> }>;
+        getModules: () => Map<
+          string,
+          { providers: Map<string, NestProviderRef> }
+        >;
       };
     }
   ).container.getModules();
 
   for (const moduleRef of modules.values()) {
     for (const providerRef of moduleRef.providers.values()) {
-      const provider = providerRef as {
-        instance?: unknown;
-        metatype?: { name?: string };
-      };
-
-      if (
-        provider.metatype?.name ===
-        'WorkspaceMigrationValidateBuildAndRunService'
-      ) {
-        return provider.instance as WorkspaceMigrationValidateBuildAndRunServiceLike;
+      if (providerRef.metatype?.name === metatypeName) {
+        return providerRef.instance as TProvider;
       }
     }
   }
 
-  throw new Error('WorkspaceMigrationValidateBuildAndRunService not found');
+  throw new Error(`${metatypeName} not found`);
 };
+
+const getWorkspaceMigrationValidateBuildAndRunService = () =>
+  getProviderInstanceByMetatypeName<WorkspaceMigrationValidateBuildAndRunServiceLike>(
+    'WorkspaceMigrationValidateBuildAndRunService',
+  );
+
+const getWorkspaceCacheService = () =>
+  getProviderInstanceByMetatypeName<WorkspaceCacheServiceLike>(
+    'WorkspaceCacheService',
+  );
 
 const getAduanaProjectionSearchFieldMetadatasToCreate = ({
   standardFlatSearchFieldMetadataMaps,
@@ -456,7 +482,7 @@ const runAduanaProjectionMetadataMigration = async ({
 };
 
 const ensureAduanaProjectionMetadata = async () => {
-  const workspaceCacheService = global.app.get(WorkspaceCacheService);
+  const workspaceCacheService = getWorkspaceCacheService();
   const workspaceMigrationValidateBuildAndRunService =
     getWorkspaceMigrationValidateBuildAndRunService();
   const twentyStandardFlatApplication =
