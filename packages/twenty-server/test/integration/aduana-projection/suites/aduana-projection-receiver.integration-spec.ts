@@ -2,7 +2,7 @@ import { createHmac, randomUUID } from 'node:crypto';
 
 import request from 'supertest';
 
-import { AddAduanaProjectionAuditStorageFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-instance-command-fast-1825000001000-add-aduana-projection-audit-storage';
+import { AddAduanaProjectionAuditStorageFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-instance-command-fast-1783517693762-add-aduana-projection-audit-storage';
 import { buildAduanaProjectionSignaturePayload } from 'src/modules/aduana-projection/services/aduana-projection-signature.service';
 
 const TEST_WORKSPACE_ID = '20202020-1c25-4d02-bf25-6aeccf7ea419';
@@ -128,6 +128,38 @@ const countProjectionRows = async () => {
   return result.count as number;
 };
 
+const ensureCoreSchemaExists = async () => {
+  await global.testDataSource.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+  await global.testDataSource.query('CREATE SCHEMA IF NOT EXISTS "core"');
+};
+
+const ensureAduanaProjectionTableExists = async () => {
+  await global.testDataSource.query(
+    `CREATE SCHEMA IF NOT EXISTS "${TEST_SCHEMA_NAME}"`,
+  );
+
+  await global.testDataSource.query(
+    `CREATE TABLE IF NOT EXISTS "${TEST_SCHEMA_NAME}"."aduanaProjection" (
+       id uuid PRIMARY KEY,
+       "eventId" text NOT NULL,
+       "eventType" text NOT NULL,
+       "occurredAt" timestamptz NOT NULL,
+       "sourceRecordId" text NOT NULL,
+       "evidenceId" text NOT NULL,
+       summary text,
+       "ingestionStatus" text NOT NULL,
+       "receivedAt" timestamptz NOT NULL,
+       "deletedAt" timestamptz
+     )`,
+  );
+};
+
+const deleteProjectionRows = async () => {
+  await global.testDataSource.query(
+    `DELETE FROM "${TEST_SCHEMA_NAME}"."aduanaProjection"`,
+  );
+};
+
 describe('Aduana projection receiver integration', () => {
   const eventIdsToDelete: string[] = [];
   const noncesToDelete: string[] = [];
@@ -141,9 +173,12 @@ describe('Aduana projection receiver integration', () => {
 
     await queryRunner.connect();
     try {
+      await ensureCoreSchemaExists();
       await new AddAduanaProjectionAuditStorageFastInstanceCommand().up(
         queryRunner,
       );
+      await ensureAduanaProjectionTableExists();
+      await deleteProjectionRows();
     } finally {
       await queryRunner.release();
     }
@@ -152,6 +187,7 @@ describe('Aduana projection receiver integration', () => {
   afterEach(async () => {
     await deleteAuditRows(eventIdsToDelete.splice(0));
     await deleteAuditRowsByNonces(noncesToDelete.splice(0));
+    await deleteProjectionRows();
   });
 
   it('accepts a signed valid envelope, persists audit data, and does not mutate the generic projection object', async () => {
