@@ -187,7 +187,6 @@ describe('Aduana projection receiver integration', () => {
     const nonce = randomUUID();
     const invalidEnvelope = buildEnvelope({ occurredAt: undefined });
 
-    delete invalidEnvelope.occurredAt;
     noncesToDelete.push(nonce);
     const projectionRowsBefore = await countProjectionRows();
 
