@@ -1,6 +1,6 @@
 import { TWENTY_STANDARD_APPLICATION_UNIVERSAL_IDENTIFIER } from 'twenty-shared/application';
 import { STANDARD_OBJECTS } from 'twenty-shared/metadata';
-import { FieldMetadataType } from 'twenty-shared/types';
+import { DateDisplayFormat, FieldMetadataType } from 'twenty-shared/types';
 
 import { FieldMetadataExceptionCode } from 'src/engine/metadata-modules/field-metadata/field-metadata.exception';
 import { createEmptyFlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/constant/create-empty-flat-entity-maps.constant';
@@ -22,6 +22,9 @@ describe('FlatFieldMetadataValidatorService', () => {
       workspaceId: 'workspace-id',
       now: '2026-01-01T00:00:00.000Z',
       twentyStandardApplicationId: 'twenty-standard-application-id',
+      dependencyFlatEntityMaps: {
+        flatObjectMetadataMaps: createEmptyFlatEntityMaps(),
+      },
       standardObjectMetadataRelatedEntityIds:
         getStandardObjectMetadataRelatedEntityIds({
           includeAduanaProjection: true,
@@ -227,7 +230,9 @@ describe('FlatFieldMetadataValidatorService', () => {
         'an approved Aduana field universal identifier with altered settings',
       args: {
         field: buildAduanaField({
-          overrides: { universalSettings: { displayFormat: 'CUSTOM' } },
+          overrides: {
+            universalSettings: { displayFormat: DateDisplayFormat.CUSTOM },
+          },
         }),
       },
     },

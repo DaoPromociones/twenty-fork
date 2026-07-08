@@ -42,6 +42,9 @@ const ADUANA_PROJECTION_STANDARD_FIELD_METADATA_BY_UNIVERSAL_IDENTIFIER =
         workspaceId: 'workspace-id',
         now: '2026-01-01T00:00:00.000Z',
         twentyStandardApplicationId: 'twenty-standard-application-id',
+        dependencyFlatEntityMaps: {
+          flatObjectMetadataMaps: createEmptyFlatEntityMaps(),
+        },
         standardObjectMetadataRelatedEntityIds:
           getStandardObjectMetadataRelatedEntityIds({
             includeAduanaProjection: true,
@@ -69,7 +72,6 @@ const ADUANA_PROJECTION_STANDARD_FIELD_PROPERTIES_TO_COMPARE = [
   'isLabelSyncedWithName',
   'overrides',
   'defaultValue',
-  'settings',
   'options',
   'relationTargetObjectMetadataUniversalIdentifier',
   'relationTargetFieldMetadataUniversalIdentifier',

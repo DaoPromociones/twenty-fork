@@ -128,13 +128,13 @@ const ADUANA_PROJECTION_PAGE_LAYOUT_WIDGET_UNIVERSAL_IDENTIFIERS = [
     .timeline.widgets.timeline.universalIdentifier,
 ];
 
-const ADUANA_PROJECTION_DELETABLE_METADATA_TABLE_NAMES = [
+const ADUANA_PROJECTION_DELETABLE_METADATA_TABLE_NAMES: SyncableMetadataTableName[] = [
   'view',
   'viewField',
   'pageLayout',
   'pageLayoutTab',
   'pageLayoutWidget',
-] satisfies SyncableMetadataTableName[];
+];
 
 const FORBIDDEN_ADUANA_PROJECTION_FIELD_NAMES = [
   'rawEnvelope',
