@@ -15,7 +15,7 @@ const jestConfig = {
   displayName: 'twenty-server',
   rootDir: './',
   testEnvironment: 'node',
-  setupFilesAfterEnv: ['./setupTests.ts'],
+  setupFilesAfterEnv: ['./test/jest-forbid-focused-tests.ts', './setupTests.ts'],
   transformIgnorePatterns: [
     // jsdom 29 pulls ESM-only transitive deps (parse5, entities, tough-cookie,
     // @exodus/bytes via html-encoding-sniffer, @csstools/@asamuzakjp css engine),

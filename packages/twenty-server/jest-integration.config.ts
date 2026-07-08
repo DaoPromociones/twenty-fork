@@ -40,6 +40,7 @@ const jestConfig: JestConfigWithTsJest = {
   globalSetup: '<rootDir>/test/integration/utils/setup-test.ts',
   globalTeardown: '<rootDir>/test/integration/utils/teardown-test.ts',
   setupFilesAfterEnv: [
+    '<rootDir>/test/jest-forbid-focused-tests.ts',
     '<rootDir>/test/integration/utils/setup-wait-for-all-jobs-between-tests.ts',
   ],
   testTimeout: 20000,
