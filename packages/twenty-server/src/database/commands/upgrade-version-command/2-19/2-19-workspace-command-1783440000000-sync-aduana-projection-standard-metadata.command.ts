@@ -15,6 +15,7 @@ import {
 } from 'src/database/commands/upgrade-version-command/2-10/utils/get-standard-flat-entities-to-create-or-throw.util';
 import { ApplicationService } from 'src/engine/core-modules/application/application.service';
 import { RegisteredWorkspaceCommand } from 'src/engine/core-modules/upgrade/decorators/registered-workspace-command.decorator';
+import { type AllFlatEntityOperationByMetadataName } from 'src/engine/metadata-modules/flat-entity/types/flat-entity-to-create-delete-update.type';
 import { type FlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/types/flat-entity-maps.type';
 import { type FlatFieldMetadata } from 'src/engine/metadata-modules/flat-field-metadata/types/flat-field-metadata.type';
 import { type FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object-metadata/types/flat-object-metadata.type';
@@ -25,6 +26,7 @@ import { type FlatSearchFieldMetadata } from 'src/engine/metadata-modules/flat-s
 import { type FlatViewField } from 'src/engine/metadata-modules/flat-view-field/types/flat-view-field.type';
 import { type FlatView } from 'src/engine/metadata-modules/flat-view/types/flat-view.type';
 import { WorkspaceCacheService } from 'src/engine/workspace-cache/services/workspace-cache.service';
+import { type WorkspaceCacheKeyName } from 'src/engine/workspace-cache/types/workspace-cache-key.type';
 import { getWorkspaceSchemaName } from 'src/engine/workspace-datasource/utils/get-workspace-schema-name.util';
 import { computeTwentyStandardApplicationAllFlatEntityMaps } from 'src/engine/workspace-manager/twenty-standard-application/utils/twenty-standard-application-all-flat-entity-maps.constant';
 import { WorkspaceMigrationValidateBuildAndRunService } from 'src/engine/workspace-manager/workspace-migration/services/workspace-migration-validate-build-and-run-service';
@@ -152,7 +154,9 @@ const getAduanaProjectionSearchFieldMetadatasToCreate = ({
       ),
   );
 
-  return Object.values(standardFlatSearchFieldMetadataMaps.byUniversalIdentifier)
+  return Object.values(
+    standardFlatSearchFieldMetadataMaps.byUniversalIdentifier,
+  )
     .filter(isDefined)
     .filter(
       (flatSearchFieldMetadata) =>
@@ -190,15 +194,15 @@ const ADUANA_PROJECTION_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS = [
 ];
 
 const ADUANA_PROJECTION_PAGE_LAYOUT_TAB_UNIVERSAL_IDENTIFIERS = [
-  STANDARD_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS.aduanaProjectionRecordPage.tabs.home
-    .universalIdentifier,
+  STANDARD_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS.aduanaProjectionRecordPage.tabs
+    .home.universalIdentifier,
   STANDARD_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS.aduanaProjectionRecordPage.tabs
     .timeline.universalIdentifier,
 ];
 
 const ADUANA_PROJECTION_PAGE_LAYOUT_WIDGET_UNIVERSAL_IDENTIFIERS = [
-  STANDARD_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS.aduanaProjectionRecordPage.tabs.home
-    .widgets.fields.universalIdentifier,
+  STANDARD_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS.aduanaProjectionRecordPage.tabs
+    .home.widgets.fields.universalIdentifier,
   STANDARD_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS.aduanaProjectionRecordPage.tabs
     .timeline.widgets.timeline.universalIdentifier,
 ];
@@ -209,6 +213,28 @@ const DEPENDENCY_REPAIR_ERROR_MESSAGES = [
   'Object metadata not found',
   'TS_VECTOR_FIELD_METADATA_NOT_FOUND',
 ];
+
+const ADUANA_PROJECTION_WORKSPACE_CACHE_KEYS: WorkspaceCacheKeyName[] = [
+  'flatObjectMetadataMaps',
+  'flatFieldMetadataMaps',
+  'flatSearchFieldMetadataMaps',
+  'flatViewMaps',
+  'flatViewFieldMaps',
+  'flatPageLayoutMaps',
+  'flatPageLayoutTabMaps',
+  'flatPageLayoutWidgetMaps',
+  'flatCommandMenuItemMaps',
+];
+
+const ADUANA_PROJECTION_DEPENDENT_METADATA_NAMES = [
+  'searchFieldMetadata',
+  'view',
+  'viewField',
+  'pageLayout',
+  'pageLayoutTab',
+  'pageLayoutWidget',
+  'commandMenuItem',
+] as const;
 
 const shouldRetryWithCoreMetadataOnly = (result: unknown): boolean =>
   DEPENDENCY_REPAIR_ERROR_MESSAGES.some((message) =>
@@ -260,175 +286,185 @@ export class SyncAduanaProjectionStandardMetadataCommand extends ActiveOrSuspend
       return;
     }
 
-    const {
-      flatObjectMetadataMaps,
-      flatFieldMetadataMaps,
-      flatSearchFieldMetadataMaps,
-      flatViewMaps,
-      flatViewFieldMaps,
-      flatPageLayoutMaps,
-      flatPageLayoutTabMaps,
-      flatPageLayoutWidgetMaps,
-      flatCommandMenuItemMaps,
-    } = await this.workspaceCacheService.getOrRecompute(workspaceId, [
-      'flatObjectMetadataMaps',
-      'flatFieldMetadataMaps',
-      'flatSearchFieldMetadataMaps',
-      'flatViewMaps',
-      'flatViewFieldMaps',
-      'flatPageLayoutMaps',
-      'flatPageLayoutTabMaps',
-      'flatPageLayoutWidgetMaps',
-      'flatCommandMenuItemMaps',
-    ]);
-
     const { twentyStandardFlatApplication } =
       await this.applicationService.findWorkspaceTwentyStandardAndCustomApplicationOrThrow(
         { workspaceId },
       );
 
-    const now = new Date().toISOString();
-
-    const { allFlatEntityMaps: standardAllFlatEntityMaps } =
-      computeTwentyStandardApplicationAllFlatEntityMaps({
-        now,
-        workspaceId,
-        twentyStandardApplicationId: twentyStandardFlatApplication.id,
-        includeAduanaProjection: true,
-      });
-
-    const objectMetadataRenameUpdates =
-      buildAduanaProjectionObjectRenameUpdates({
+    const buildAduanaProjectionOperations = async () => {
+      const {
         flatObjectMetadataMaps,
-        now,
-      });
-    const renamedCollisionObjectMetadatas = objectMetadataRenameUpdates.map(
-      (objectMetadata) => ({
-        universalIdentifier: objectMetadata.universalIdentifier,
-        nameSingular: objectMetadata.nameSingular,
-      }),
-    );
-
-    const aduanaProjectionObjectMetadataForNavigation =
-      getExistingOrStandardFlatEntityOrThrow<FlatObjectMetadata>({
-        standardFlatEntityMaps: standardAllFlatEntityMaps.flatObjectMetadataMaps,
-        existingFlatEntityMaps: flatObjectMetadataMaps,
-        universalIdentifier: STANDARD_OBJECTS.aduanaProjection.universalIdentifier,
-      });
-
-    const navigationCommandMenuItemOperations =
-      buildNavigationCommandMenuItemOperationsOrThrow({
-        existingFlatCommandMenuItemMaps: flatCommandMenuItemMaps,
-        objectMetadatasForNavigation: [
-          aduanaProjectionObjectMetadataForNavigation,
-        ],
-        applicationId: twentyStandardFlatApplication.id,
+        flatFieldMetadataMaps,
+        flatSearchFieldMetadataMaps,
+        flatViewMaps,
+        flatViewFieldMaps,
+        flatPageLayoutMaps,
+        flatPageLayoutTabMaps,
+        flatPageLayoutWidgetMaps,
+        flatCommandMenuItemMaps,
+      } = await this.workspaceCacheService.getOrRecompute(
         workspaceId,
-        now,
-        renamedCollisionObjectMetadatas,
-      });
+        ADUANA_PROJECTION_WORKSPACE_CACHE_KEYS,
+      );
 
-    const allFlatEntityOperationByMetadataName = {
-      objectMetadata: {
-        flatEntityToCreate:
-          getStandardFlatEntitiesToCreateOrThrow<FlatObjectMetadata>({
-            standardFlatEntityMaps:
-              standardAllFlatEntityMaps.flatObjectMetadataMaps,
-            existingFlatEntityMaps: flatObjectMetadataMaps,
-            universalIdentifiers:
-              ADUANA_PROJECTION_OBJECT_METADATA_UNIVERSAL_IDENTIFIERS,
-          }),
-        flatEntityToDelete: [],
-        flatEntityToUpdate: objectMetadataRenameUpdates,
-      },
-      fieldMetadata: {
-        flatEntityToCreate:
-          getStandardFlatEntitiesToCreateOrThrow<FlatFieldMetadata>({
-            standardFlatEntityMaps:
-              standardAllFlatEntityMaps.flatFieldMetadataMaps,
-            existingFlatEntityMaps: flatFieldMetadataMaps,
-            universalIdentifiers:
-              ADUANA_PROJECTION_FIELD_METADATA_UNIVERSAL_IDENTIFIERS,
-          }),
-        flatEntityToDelete: [],
-        flatEntityToUpdate: [],
-      },
-      searchFieldMetadata: {
-        flatEntityToCreate: getAduanaProjectionSearchFieldMetadatasToCreate({
-          standardFlatSearchFieldMetadataMaps:
-            standardAllFlatEntityMaps.flatSearchFieldMetadataMaps,
-          existingFlatSearchFieldMetadataMaps: flatSearchFieldMetadataMaps,
+      const now = new Date().toISOString();
+
+      const { allFlatEntityMaps: standardAllFlatEntityMaps } =
+        computeTwentyStandardApplicationAllFlatEntityMaps({
+          now,
+          workspaceId,
+          twentyStandardApplicationId: twentyStandardFlatApplication.id,
+          includeAduanaProjection: true,
+        });
+
+      const objectMetadataRenameUpdates =
+        buildAduanaProjectionObjectRenameUpdates({
+          flatObjectMetadataMaps,
+          now,
+        });
+      const renamedCollisionObjectMetadatas = objectMetadataRenameUpdates.map(
+        (objectMetadata) => ({
+          universalIdentifier: objectMetadata.universalIdentifier,
+          nameSingular: objectMetadata.nameSingular,
         }),
-        flatEntityToDelete: [],
-        flatEntityToUpdate: [],
-      },
-      view: {
-        flatEntityToCreate: getStandardFlatEntitiesToCreateOrThrow<FlatView>({
-          standardFlatEntityMaps: standardAllFlatEntityMaps.flatViewMaps,
-          existingFlatEntityMaps: flatViewMaps,
-          universalIdentifiers: ADUANA_PROJECTION_VIEW_UNIVERSAL_IDENTIFIERS,
-        }),
-        flatEntityToDelete: [],
-        flatEntityToUpdate: [],
-      },
-      viewField: {
-        flatEntityToCreate:
-          getStandardFlatEntitiesToCreateOrThrow<FlatViewField>({
-            standardFlatEntityMaps: standardAllFlatEntityMaps.flatViewFieldMaps,
-            existingFlatEntityMaps: flatViewFieldMaps,
-            universalIdentifiers:
-              ADUANA_PROJECTION_VIEW_FIELD_UNIVERSAL_IDENTIFIERS,
-          }),
-        flatEntityToDelete: [],
-        flatEntityToUpdate: [],
-      },
-      pageLayout: {
-        flatEntityToCreate:
-          getStandardFlatEntitiesToCreateOrThrow<FlatPageLayout>({
-            standardFlatEntityMaps: standardAllFlatEntityMaps.flatPageLayoutMaps,
-            existingFlatEntityMaps: flatPageLayoutMaps,
-            universalIdentifiers:
-              ADUANA_PROJECTION_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS,
-          }),
-        flatEntityToDelete: [],
-        flatEntityToUpdate: [],
-      },
-      pageLayoutTab: {
-        flatEntityToCreate:
-          getStandardFlatEntitiesToCreateOrThrow<FlatPageLayoutTab>({
-            standardFlatEntityMaps:
-              standardAllFlatEntityMaps.flatPageLayoutTabMaps,
-            existingFlatEntityMaps: flatPageLayoutTabMaps,
-            universalIdentifiers:
-              ADUANA_PROJECTION_PAGE_LAYOUT_TAB_UNIVERSAL_IDENTIFIERS,
-          }),
-        flatEntityToDelete: [],
-        flatEntityToUpdate: [],
-      },
-      pageLayoutWidget: {
-        flatEntityToCreate:
-          getStandardFlatEntitiesToCreateOrThrow<FlatPageLayoutWidget>({
-            standardFlatEntityMaps:
-              standardAllFlatEntityMaps.flatPageLayoutWidgetMaps,
-            existingFlatEntityMaps: flatPageLayoutWidgetMaps,
-            universalIdentifiers:
-              ADUANA_PROJECTION_PAGE_LAYOUT_WIDGET_UNIVERSAL_IDENTIFIERS,
-          }),
-        flatEntityToDelete: [],
-        flatEntityToUpdate: [],
-      },
-      commandMenuItem: navigationCommandMenuItemOperations,
+      );
+
+      const aduanaProjectionObjectMetadataForNavigation =
+        getExistingOrStandardFlatEntityOrThrow<FlatObjectMetadata>({
+          standardFlatEntityMaps:
+            standardAllFlatEntityMaps.flatObjectMetadataMaps,
+          existingFlatEntityMaps: flatObjectMetadataMaps,
+          universalIdentifier:
+            STANDARD_OBJECTS.aduanaProjection.universalIdentifier,
+        });
+
+      const navigationCommandMenuItemOperations =
+        buildNavigationCommandMenuItemOperationsOrThrow({
+          existingFlatCommandMenuItemMaps: flatCommandMenuItemMaps,
+          objectMetadatasForNavigation: [
+            aduanaProjectionObjectMetadataForNavigation,
+          ],
+          applicationId: twentyStandardFlatApplication.id,
+          workspaceId,
+          now,
+          renamedCollisionObjectMetadatas,
+        });
+
+      const allFlatEntityOperationByMetadataName: AllFlatEntityOperationByMetadataName =
+        {
+          objectMetadata: {
+            flatEntityToCreate:
+              getStandardFlatEntitiesToCreateOrThrow<FlatObjectMetadata>({
+                standardFlatEntityMaps:
+                  standardAllFlatEntityMaps.flatObjectMetadataMaps,
+                existingFlatEntityMaps: flatObjectMetadataMaps,
+                universalIdentifiers:
+                  ADUANA_PROJECTION_OBJECT_METADATA_UNIVERSAL_IDENTIFIERS,
+              }),
+            flatEntityToDelete: [],
+            flatEntityToUpdate: objectMetadataRenameUpdates,
+          },
+          fieldMetadata: {
+            flatEntityToCreate:
+              getStandardFlatEntitiesToCreateOrThrow<FlatFieldMetadata>({
+                standardFlatEntityMaps:
+                  standardAllFlatEntityMaps.flatFieldMetadataMaps,
+                existingFlatEntityMaps: flatFieldMetadataMaps,
+                universalIdentifiers:
+                  ADUANA_PROJECTION_FIELD_METADATA_UNIVERSAL_IDENTIFIERS,
+              }),
+            flatEntityToDelete: [],
+            flatEntityToUpdate: [],
+          },
+          searchFieldMetadata: {
+            flatEntityToCreate: getAduanaProjectionSearchFieldMetadatasToCreate(
+              {
+                standardFlatSearchFieldMetadataMaps:
+                  standardAllFlatEntityMaps.flatSearchFieldMetadataMaps,
+                existingFlatSearchFieldMetadataMaps:
+                  flatSearchFieldMetadataMaps,
+              },
+            ),
+            flatEntityToDelete: [],
+            flatEntityToUpdate: [],
+          },
+          view: {
+            flatEntityToCreate:
+              getStandardFlatEntitiesToCreateOrThrow<FlatView>({
+                standardFlatEntityMaps: standardAllFlatEntityMaps.flatViewMaps,
+                existingFlatEntityMaps: flatViewMaps,
+                universalIdentifiers:
+                  ADUANA_PROJECTION_VIEW_UNIVERSAL_IDENTIFIERS,
+              }),
+            flatEntityToDelete: [],
+            flatEntityToUpdate: [],
+          },
+          viewField: {
+            flatEntityToCreate:
+              getStandardFlatEntitiesToCreateOrThrow<FlatViewField>({
+                standardFlatEntityMaps:
+                  standardAllFlatEntityMaps.flatViewFieldMaps,
+                existingFlatEntityMaps: flatViewFieldMaps,
+                universalIdentifiers:
+                  ADUANA_PROJECTION_VIEW_FIELD_UNIVERSAL_IDENTIFIERS,
+              }),
+            flatEntityToDelete: [],
+            flatEntityToUpdate: [],
+          },
+          pageLayout: {
+            flatEntityToCreate:
+              getStandardFlatEntitiesToCreateOrThrow<FlatPageLayout>({
+                standardFlatEntityMaps:
+                  standardAllFlatEntityMaps.flatPageLayoutMaps,
+                existingFlatEntityMaps: flatPageLayoutMaps,
+                universalIdentifiers:
+                  ADUANA_PROJECTION_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS,
+              }),
+            flatEntityToDelete: [],
+            flatEntityToUpdate: [],
+          },
+          pageLayoutTab: {
+            flatEntityToCreate:
+              getStandardFlatEntitiesToCreateOrThrow<FlatPageLayoutTab>({
+                standardFlatEntityMaps:
+                  standardAllFlatEntityMaps.flatPageLayoutTabMaps,
+                existingFlatEntityMaps: flatPageLayoutTabMaps,
+                universalIdentifiers:
+                  ADUANA_PROJECTION_PAGE_LAYOUT_TAB_UNIVERSAL_IDENTIFIERS,
+              }),
+            flatEntityToDelete: [],
+            flatEntityToUpdate: [],
+          },
+          pageLayoutWidget: {
+            flatEntityToCreate:
+              getStandardFlatEntitiesToCreateOrThrow<FlatPageLayoutWidget>({
+                standardFlatEntityMaps:
+                  standardAllFlatEntityMaps.flatPageLayoutWidgetMaps,
+                existingFlatEntityMaps: flatPageLayoutWidgetMaps,
+                universalIdentifiers:
+                  ADUANA_PROJECTION_PAGE_LAYOUT_WIDGET_UNIVERSAL_IDENTIFIERS,
+              }),
+            flatEntityToDelete: [],
+            flatEntityToUpdate: [],
+          },
+          commandMenuItem: navigationCommandMenuItemOperations,
+        };
+
+      const totalOperationCount = Object.values(
+        allFlatEntityOperationByMetadataName,
+      ).reduce(
+        (total, operations) =>
+          total +
+          operations.flatEntityToCreate.length +
+          operations.flatEntityToUpdate.length,
+        0,
+      );
+
+      return { allFlatEntityOperationByMetadataName, totalOperationCount };
     };
 
-    const totalOperationCount = Object.values(
-      allFlatEntityOperationByMetadataName,
-    ).reduce(
-      (total, operations) =>
-        total +
-        operations.flatEntityToCreate.length +
-        operations.flatEntityToUpdate.length,
-      0,
-    );
+    let { allFlatEntityOperationByMetadataName, totalOperationCount } =
+      await buildAduanaProjectionOperations();
 
     if (totalOperationCount === 0) {
       this.logger.log(
@@ -461,7 +497,7 @@ export class SyncAduanaProjectionStandardMetadataCommand extends ActiveOrSuspend
       validateAndBuildResult.status === 'fail' &&
       shouldRetryWithCoreMetadataOnly(validateAndBuildResult)
     ) {
-      validateAndBuildResult =
+      const coreMetadataSyncResult =
         await this.workspaceMigrationValidateBuildAndRunService.validateBuildAndRunWorkspaceMigration(
           {
             isSystemBuild: true,
@@ -469,9 +505,48 @@ export class SyncAduanaProjectionStandardMetadataCommand extends ActiveOrSuspend
               twentyStandardFlatApplication.universalIdentifier,
             workspaceId,
             allFlatEntityOperationByMetadataName: {
-              objectMetadata: allFlatEntityOperationByMetadataName.objectMetadata,
+              objectMetadata:
+                allFlatEntityOperationByMetadataName.objectMetadata,
               fieldMetadata: allFlatEntityOperationByMetadataName.fieldMetadata,
             },
+          },
+        );
+
+      if (coreMetadataSyncResult.status === 'fail') {
+        throw new Error(
+          `Failed to create AduanaProjection core metadata for workspace ${workspaceId}: ${JSON.stringify(
+            coreMetadataSyncResult,
+            null,
+            2,
+          )}`,
+        );
+      }
+
+      await this.workspaceCacheService.invalidateAndRecompute(
+        workspaceId,
+        ADUANA_PROJECTION_WORKSPACE_CACHE_KEYS,
+      );
+
+      ({ allFlatEntityOperationByMetadataName, totalOperationCount } =
+        await buildAduanaProjectionOperations());
+
+      const dependentMetadataOperations =
+        ADUANA_PROJECTION_DEPENDENT_METADATA_NAMES.reduce<AllFlatEntityOperationByMetadataName>(
+          (operationsByMetadataName, metadataName) => ({
+            ...operationsByMetadataName,
+            [metadataName]: allFlatEntityOperationByMetadataName[metadataName],
+          }),
+          {},
+        );
+
+      validateAndBuildResult =
+        await this.workspaceMigrationValidateBuildAndRunService.validateBuildAndRunWorkspaceMigration(
+          {
+            isSystemBuild: true,
+            applicationUniversalIdentifier:
+              twentyStandardFlatApplication.universalIdentifier,
+            workspaceId,
+            allFlatEntityOperationByMetadataName: dependentMetadataOperations,
           },
         );
     }

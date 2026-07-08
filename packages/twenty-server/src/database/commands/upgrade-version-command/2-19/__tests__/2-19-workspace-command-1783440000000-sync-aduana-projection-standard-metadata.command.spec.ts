@@ -78,6 +78,7 @@ const buildFlatCommandMenuItemMaps = (
 describe('SyncAduanaProjectionStandardMetadataCommand', () => {
   let command: SyncAduanaProjectionStandardMetadataCommand;
   let getOrRecompute: jest.Mock;
+  let invalidateAndRecompute: jest.Mock;
   let dataSource: { coreDataSource: { query: jest.Mock } };
   let validateBuildAndRunWorkspaceMigration: jest.Mock<
     Promise<ValidateBuildAndRunWorkspaceMigrationResult>,
@@ -98,6 +99,7 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
       flatPageLayoutWidgetMaps: createEmptyFlatEntityMaps(),
       flatCommandMenuItemMaps: createEmptyFlatEntityMaps(),
     });
+    invalidateAndRecompute = jest.fn().mockResolvedValue(undefined);
     dataSource = {
       coreDataSource: {
         query: jest.fn().mockResolvedValue([{ exists: true }]),
@@ -122,7 +124,10 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
       {
         findWorkspaceTwentyStandardAndCustomApplicationOrThrow,
       } as unknown as ApplicationService,
-      { getOrRecompute } as unknown as WorkspaceCacheService,
+      {
+        getOrRecompute,
+        invalidateAndRecompute,
+      } as unknown as WorkspaceCacheService,
       {
         validateBuildAndRunWorkspaceMigration,
       } as unknown as WorkspaceMigrationValidateBuildAndRunService,
@@ -152,7 +157,8 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
       'flatCommandMenuItemMaps',
     ]);
 
-    const migrationArgs = validateBuildAndRunWorkspaceMigration.mock.calls[0]?.[0];
+    const migrationArgs =
+      validateBuildAndRunWorkspaceMigration.mock.calls[0]?.[0];
 
     expect(migrationArgs).toBeDefined();
     expect(migrationArgs?.workspaceId).toBe(WORKSPACE_ID);
@@ -191,25 +197,26 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
     );
     expect(searchFieldMetadataToCreate).toEqual(
       expect.arrayContaining(
-        SEARCH_FIELDS_BY_STANDARD_OBJECT_NAME.aduanaProjection.map(
-          ({ name }) =>
-            expect.objectContaining({
-              objectMetadataUniversalIdentifier:
-                STANDARD_OBJECTS.aduanaProjection.universalIdentifier,
-              fieldMetadataUniversalIdentifier:
-                STANDARD_OBJECTS.aduanaProjection.fields[name].universalIdentifier,
-            }),
+        SEARCH_FIELDS_BY_STANDARD_OBJECT_NAME.aduanaProjection.map(({ name }) =>
+          expect.objectContaining({
+            objectMetadataUniversalIdentifier:
+              STANDARD_OBJECTS.aduanaProjection.universalIdentifier,
+            fieldMetadataUniversalIdentifier:
+              STANDARD_OBJECTS.aduanaProjection.fields[name]
+                .universalIdentifier,
+          }),
         ),
       ),
     );
   });
 
-  it('falls back to core object and field metadata when stale dependent metadata prevents full sync', async () => {
+  it('syncs dependent metadata after repairing core metadata when stale dependencies prevent full sync', async () => {
     validateBuildAndRunWorkspaceMigration
       .mockResolvedValueOnce({
         status: 'fail',
         reason: 'Field metadata not found while creating viewField',
       } as unknown as ValidateBuildAndRunWorkspaceMigrationResult)
+      .mockResolvedValueOnce(successResult)
       .mockResolvedValueOnce(successResult);
 
     await command.runOnWorkspace({
@@ -220,24 +227,97 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
       total: 1,
     });
 
-    expect(validateBuildAndRunWorkspaceMigration).toHaveBeenCalledTimes(2);
+    expect(validateBuildAndRunWorkspaceMigration).toHaveBeenCalledTimes(3);
+    expect(invalidateAndRecompute).toHaveBeenCalledWith(WORKSPACE_ID, [
+      'flatObjectMetadataMaps',
+      'flatFieldMetadataMaps',
+      'flatSearchFieldMetadataMaps',
+      'flatViewMaps',
+      'flatViewFieldMaps',
+      'flatPageLayoutMaps',
+      'flatPageLayoutTabMaps',
+      'flatPageLayoutWidgetMaps',
+      'flatCommandMenuItemMaps',
+    ]);
 
-    const retryOperations = validateBuildAndRunWorkspaceMigration.mock.calls[1]?.[0]
-      .allFlatEntityOperationByMetadataName as
+    const coreRepairOperations = validateBuildAndRunWorkspaceMigration.mock
+      .calls[1]?.[0].allFlatEntityOperationByMetadataName as
       | AllFlatEntityOperationByMetadataName
       | undefined;
 
-    expect(Object.keys(retryOperations ?? {}).sort()).toEqual([
+    expect(Object.keys(coreRepairOperations ?? {}).sort()).toEqual([
       'fieldMetadata',
       'objectMetadata',
     ]);
-    expect(retryOperations?.objectMetadata?.flatEntityToCreate).toEqual(
+    expect(coreRepairOperations?.objectMetadata?.flatEntityToCreate).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ nameSingular: 'aduanaProjection' }),
       ]),
     );
-    expect(retryOperations?.fieldMetadata?.flatEntityToCreate).toEqual(
+    expect(coreRepairOperations?.fieldMetadata?.flatEntityToCreate).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'eventId' })]),
+    );
+
+    const dependentRepairOperations = validateBuildAndRunWorkspaceMigration.mock
+      .calls[2]?.[0].allFlatEntityOperationByMetadataName as
+      | AllFlatEntityOperationByMetadataName
+      | undefined;
+
+    expect(Object.keys(dependentRepairOperations ?? {}).sort()).toEqual([
+      'commandMenuItem',
+      'pageLayout',
+      'pageLayoutTab',
+      'pageLayoutWidget',
+      'searchFieldMetadata',
+      'view',
+      'viewField',
+    ]);
+    expect(dependentRepairOperations?.view?.flatEntityToCreate).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          objectMetadataUniversalIdentifier:
+            STANDARD_OBJECTS.aduanaProjection.universalIdentifier,
+        }),
+      ]),
+    );
+    expect(
+      dependentRepairOperations?.viewField?.flatEntityToCreate.length,
+    ).toBeGreaterThan(0);
+    expect(
+      dependentRepairOperations?.searchFieldMetadata?.flatEntityToCreate,
+    ).toHaveLength(
+      SEARCH_FIELDS_BY_STANDARD_OBJECT_NAME.aduanaProjection.length,
+    );
+  });
+
+  it('fails when dependent metadata still cannot be synced after repairing core metadata', async () => {
+    validateBuildAndRunWorkspaceMigration
+      .mockResolvedValueOnce({
+        status: 'fail',
+        reason: 'Field metadata not found while creating viewField',
+      } as unknown as ValidateBuildAndRunWorkspaceMigrationResult)
+      .mockResolvedValueOnce(successResult)
+      .mockResolvedValueOnce({
+        status: 'fail',
+        reason: 'View not found while creating viewField',
+      } as unknown as ValidateBuildAndRunWorkspaceMigrationResult);
+
+    await expect(
+      command.runOnWorkspace({
+        workspaceId: WORKSPACE_ID,
+        dataSource: dataSource as never,
+        options: {},
+        index: 0,
+        total: 1,
+      }),
+    ).rejects.toThrow(
+      'Failed to create AduanaProjection standard metadata for workspace',
+    );
+
+    expect(validateBuildAndRunWorkspaceMigration).toHaveBeenCalledTimes(3);
+    expect(invalidateAndRecompute).toHaveBeenCalledWith(
+      WORKSPACE_ID,
+      expect.any(Array),
     );
   });
 
@@ -290,7 +370,8 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
       jest.useRealTimers();
     }
 
-    const migrationArgs = validateBuildAndRunWorkspaceMigration.mock.calls[0]?.[0];
+    const migrationArgs =
+      validateBuildAndRunWorkspaceMigration.mock.calls[0]?.[0];
     const operations = migrationArgs?.allFlatEntityOperationByMetadataName as
       | AllFlatEntityOperationByMetadataName
       | undefined;
