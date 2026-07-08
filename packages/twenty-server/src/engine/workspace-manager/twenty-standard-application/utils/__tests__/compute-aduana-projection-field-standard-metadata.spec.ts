@@ -87,6 +87,7 @@ describe('AduanaProjection field standard metadata build', () => {
       allFlatEntityMaps.flatFieldMetadataMaps.byUniversalIdentifier;
 
     for (const [fieldName, fieldType] of [
+      ['summary', FieldMetadataType.TEXT],
       ['occurredAt', FieldMetadataType.DATE_TIME],
       ['receivedAt', FieldMetadataType.DATE_TIME],
       ['ingestionStatus', FieldMetadataType.SELECT],

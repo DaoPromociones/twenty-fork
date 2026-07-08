@@ -8,7 +8,7 @@ import {
   PermissionsExceptionCode,
 } from 'src/engine/metadata-modules/permissions/permissions.exception';
 
-const ADUANA_PROJECTION_READ_ONLY_ERROR_MESSAGE =
+export const ADUANA_PROJECTION_READ_ONLY_ERROR_MESSAGE =
   'Aduana projection records are read-only and can only be written by trusted ingestion.';
 
 abstract class AduanaProjectionMutationDenialPreQueryHook implements WorkspacePreQueryHookInstance {
