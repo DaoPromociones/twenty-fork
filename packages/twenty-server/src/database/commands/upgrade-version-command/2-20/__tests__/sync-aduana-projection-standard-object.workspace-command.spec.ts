@@ -8,6 +8,7 @@ const dryRunArgs = { ...runArgs, options: { dryRun: true } };
 
 const buildStandardMaps = () =>
   computeTwentyStandardApplicationAllFlatEntityMaps({
+    includeAduanaProjection: true,
     now: '2026-01-01T00:00:00.000Z',
     workspaceId,
     twentyStandardApplicationId: applicationId,
@@ -164,7 +165,7 @@ describe('SyncAduanaProjectionStandardObjectCommand', () => {
     expect(missingTable.schemaManager.enumManager.createEnum).toHaveBeenCalledWith(
       expect.objectContaining({
         enumName: 'aduanaProjection_ingestionStatus_enum',
-        values: ['accepted', 'replayed', 'quarantined'],
+        values: ['ACCEPTED', 'REPLAYED', 'QUARANTINED'],
       }),
     );
     expect(missingTable.schemaManager.tableManager.createTable).toHaveBeenCalledWith(

@@ -72,6 +72,7 @@ export class SyncAduanaProjectionStandardObjectCommand extends ActiveOrSuspended
     );
     const { allFlatEntityMaps: standardMaps } =
       computeTwentyStandardApplicationAllFlatEntityMaps({
+        includeAduanaProjection: true,
         now: new Date().toISOString(),
         workspaceId,
         twentyStandardApplicationId: twentyStandardFlatApplication.id,
