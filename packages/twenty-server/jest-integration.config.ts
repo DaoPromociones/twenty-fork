@@ -15,6 +15,10 @@ if (process.env.NODE_ENV === 'test') {
 const isBillingEnabled = process.env.IS_BILLING_ENABLED === 'true';
 const isClickhouseEnabled = process.env.CLICKHOUSE_URL !== undefined;
 
+process.env.ADUANA_PROJECTION_WORKSPACE_SECRETS ??= JSON.stringify({
+  '20202020-1c25-4d02-bf25-6aeccf7ea419': 'fake-aduana-projection-secret',
+});
+
 const tsConfig = require('./tsconfig.json');
 
 const jestConfig: JestConfigWithTsJest = {
@@ -35,7 +39,9 @@ const jestConfig: JestConfigWithTsJest = {
   modulePathIgnorePatterns: ['<rootDir>/dist'],
   globalSetup: '<rootDir>/test/integration/utils/setup-test.ts',
   globalTeardown: '<rootDir>/test/integration/utils/teardown-test.ts',
-  setupFilesAfterEnv: ['<rootDir>/test/integration/utils/setup-wait-for-all-jobs-between-tests.ts'],
+  setupFilesAfterEnv: [
+    '<rootDir>/test/integration/utils/setup-wait-for-all-jobs-between-tests.ts',
+  ],
   testTimeout: 20000,
   maxWorkers: 1,
   // jsdom 29 pulls ESM-only transitive deps (parse5, entities, tough-cookie,

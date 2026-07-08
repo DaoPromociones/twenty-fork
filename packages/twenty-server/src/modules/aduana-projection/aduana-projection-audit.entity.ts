@@ -37,7 +37,7 @@ export class AduanaProjectionAuditEntity {
   @Column({ type: 'uuid' })
   workspaceId: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   eventId: string | null;
 
   @Column({ type: 'text' })
@@ -49,7 +49,7 @@ export class AduanaProjectionAuditEntity {
   @Column()
   authNonce: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   canonicalHash: string | null;
 
   @Column({ type: 'text' })
