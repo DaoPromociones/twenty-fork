@@ -142,7 +142,7 @@ describe('SyncAduanaProjectionStandardObjectCommand', () => {
     const missingSchema = buildCommand({
       schemaExists: false,
       tableExists: false,
-      standardMetadataExists: false,
+      standardMetadataExists: true,
     });
 
     await missingSchema.command.runOnWorkspace(runArgs);
