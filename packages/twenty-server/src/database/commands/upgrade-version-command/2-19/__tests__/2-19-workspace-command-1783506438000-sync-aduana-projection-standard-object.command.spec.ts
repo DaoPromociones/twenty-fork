@@ -28,23 +28,57 @@ const buildEmptyMaps = () =>
     ]),
   ) as ReturnType<typeof buildStandardMaps>;
 
+const buildExistingMaps = (staleObjectRemote?: boolean) => {
+  const standardMaps = buildStandardMaps();
+
+  if (staleObjectRemote === undefined) {
+    return standardMaps;
+  }
+
+  const aduanaProjectionObject = Object.values(
+    standardMaps.flatObjectMetadataMaps.byUniversalIdentifier,
+  ).find((objectMetadata) => objectMetadata?.nameSingular === 'aduanaProjection');
+
+  return {
+    ...standardMaps,
+    flatObjectMetadataMaps: {
+      ...standardMaps.flatObjectMetadataMaps,
+      byUniversalIdentifier: {
+        ...standardMaps.flatObjectMetadataMaps.byUniversalIdentifier,
+        [aduanaProjectionObject!.universalIdentifier]: {
+          ...aduanaProjectionObject!,
+          isRemote: staleObjectRemote,
+        },
+      },
+    },
+  };
+};
+
 const buildCommand = ({
   schemaExists = true,
   existingEnumNames = [],
   tableExists,
   standardMetadataExists,
   migrationResult = { status: 'success' },
+  staleObjectRemote,
 }: {
   schemaExists?: boolean;
   existingEnumNames?: string[];
   tableExists: boolean;
   standardMetadataExists: boolean;
   migrationResult?: { status: 'success' } | { status: 'fail'; reason: string };
+  staleObjectRemote?: boolean;
 }) => {
   const queryRunner = {
     query: jest.fn(async (query: string, _parameters?: unknown[]) => {
       if (query.includes('pg_type')) {
         return existingEnumNames.map((enumName) => ({ enumName }));
+      }
+      if (query.includes('UPDATE core."objectMetadata"')) {
+        return [[], 1];
+      }
+      if (query.includes('"isRemote"')) {
+        return [{ isRemote: staleObjectRemote ?? true }];
       }
 
       return [
@@ -70,7 +104,7 @@ const buildCommand = ({
     }),
   );
   const getOrRecompute = jest.fn(async () =>
-    standardMetadataExists ? buildStandardMaps() : buildEmptyMaps(),
+    standardMetadataExists ? buildExistingMaps(staleObjectRemote) : buildEmptyMaps(),
   );
   const schemaManager = {
     enumManager: { createEnum: jest.fn() },
@@ -184,8 +218,24 @@ describe('SyncAduanaProjectionStandardObjectCommand', () => {
       expect.stringContaining('information_schema.tables'),
       ['workspace_1wgvd1injqtife6y4rvfbu3h5', 'aduanaProjection'],
     );
-    expect(existingTable.queryRunner.release).toHaveBeenCalledTimes(2);
+    expect(existingTable.queryRunner.release).toHaveBeenCalledTimes(3);
     expectNoSchemaOrMigrationMutation(existingTable);
+  });
+
+  it('updates existing Aduana projection object metadata when read-only remote exposure flags are stale', async () => {
+    const staleObject = buildCommand({
+      tableExists: true,
+      standardMetadataExists: true,
+      staleObjectRemote: false,
+    });
+
+    await staleObject.command.runOnWorkspace(runArgs);
+
+    expect(staleObject.queryRunner.query).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE core."objectMetadata"'),
+      [workspaceId],
+    );
+    expect(staleObject.validateBuildAndRunWorkspaceMigration).not.toHaveBeenCalled();
   });
 
   it('propagates workspace migration failures with workspace context', async () => {

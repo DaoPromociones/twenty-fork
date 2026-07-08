@@ -94,6 +94,20 @@ export class SyncAduanaProjectionStandardObjectCommand extends ActiveOrSuspended
       existingMaps.flatObjectMetadataMaps.byUniversalIdentifier[
         STANDARD_OBJECTS.aduanaProjection.universalIdentifier
       ];
+    const standardAduanaObject =
+      standardMaps.flatObjectMetadataMaps.byUniversalIdentifier[
+        STANDARD_OBJECTS.aduanaProjection.universalIdentifier
+      ];
+    const shouldUpdateRemoteFlag =
+      isDefined(existingAduanaObject) &&
+      isDefined(standardAduanaObject) &&
+      standardAduanaObject.isRemote === true &&
+      (existingAduanaObject.isRemote !== true ||
+        (await this.isPersistedAduanaObjectRemoteFlagStale({ workspaceId })));
+    const remoteFlagRepaired =
+      shouldUpdateRemoteFlag && !options.dryRun
+        ? await this.repairPersistedRemoteFlag({ workspaceId })
+        : false;
     const missingTableRepaired =
       isDefined(existingAduanaObject) &&
       !isDryRun &&
@@ -136,16 +150,21 @@ export class SyncAduanaProjectionStandardObjectCommand extends ActiveOrSuspended
         flatEntityToUpdate: [],
       },
     };
-    const operationCount = Object.values(operations).reduce(
-      (count, operation) => count + operation.flatEntityToCreate.length,
+    const metadataOperationCount = Object.values(operations).reduce(
+      (count, operation) =>
+        count + operation.flatEntityToCreate.length + operation.flatEntityToUpdate.length,
       0,
     );
+    const operationCount =
+      metadataOperationCount + (shouldUpdateRemoteFlag ? 1 : 0);
 
-    if (operationCount === 0) {
+    if (operationCount === 0 || metadataOperationCount === 0) {
       this.logger.log(
-        missingTableRepaired
-          ? `Repaired AduanaProjection workspace table for workspace ${workspaceId}`
-          : `AduanaProjection standard metadata already exists for workspace ${workspaceId}`,
+        remoteFlagRepaired
+          ? `Repaired AduanaProjection remote metadata flag for workspace ${workspaceId}`
+          : missingTableRepaired
+            ? `Repaired AduanaProjection workspace table for workspace ${workspaceId}`
+            : `AduanaProjection standard metadata already exists for workspace ${workspaceId}`,
       );
 
       return;
@@ -186,6 +205,40 @@ export class SyncAduanaProjectionStandardObjectCommand extends ActiveOrSuspended
       );
 
       return rows[0]?.exists === true;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  private async repairPersistedRemoteFlag({ workspaceId }: { workspaceId: string }) {
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    try {
+      const result = await queryRunner.query(
+        `UPDATE core."objectMetadata" SET "isRemote" = true WHERE "workspaceId" = $1 AND "nameSingular" = 'aduanaProjection' AND "isRemote" = false`,
+        [workspaceId],
+      );
+
+      return Array.isArray(result) ? result[1] > 0 : false;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  private async isPersistedAduanaObjectRemoteFlagStale({
+    workspaceId,
+  }: {
+    workspaceId: string;
+  }) {
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    try {
+      const rows = await queryRunner.query(
+        `SELECT "isRemote" FROM core."objectMetadata" WHERE "workspaceId" = $1 AND "nameSingular" = 'aduanaProjection'`,
+        [workspaceId],
+      );
+
+      return rows[0]?.isRemote === false;
     } finally {
       await queryRunner.release();
     }
