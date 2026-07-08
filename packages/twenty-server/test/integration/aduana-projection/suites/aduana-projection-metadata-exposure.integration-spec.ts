@@ -2,12 +2,6 @@ import { makeRestAPIRequest } from 'test/integration/rest/utils/make-rest-api-re
 import { extractMetadataItemPayload } from 'test/integration/rest/utils/metadata-rest-api.util';
 import { assertRestApiSuccessfulResponse } from 'test/integration/rest/utils/rest-test-assertions.util';
 
-jest.mock('@file-type/pdf', () => ({
-  detectPdf: jest.fn(),
-}));
-
-import { SyncAduanaProjectionStandardMetadataCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-workspace-command-1783440000000-sync-aduana-projection-standard-metadata.command';
-import { SyncAduanaProjectionStandardObjectCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-workspace-command-1783506438000-sync-aduana-projection-standard-object.command';
 import { SEED_APPLE_WORKSPACE_ID } from 'src/engine/workspace-manager/dev-seeder/core/constants/seeder-workspaces.constant';
 
 const APPROVED_ADUANA_PROJECTION_FIELD_NAMES = [
@@ -92,25 +86,6 @@ const selectAduanaProjectionViewFieldNames = async () => {
 };
 
 describe('Aduana projection metadata exposure integration', () => {
-  beforeAll(async () => {
-    await global.app
-      .get(SyncAduanaProjectionStandardMetadataCommand)
-      .runOnWorkspace({
-        workspaceId: SEED_APPLE_WORKSPACE_ID,
-        dataSource: { coreDataSource: global.testDataSource } as never,
-        options: {},
-        index: 0,
-        total: 1,
-      });
-
-    await global.app.get(SyncAduanaProjectionStandardObjectCommand).runOnWorkspace({
-      workspaceId: SEED_APPLE_WORKSPACE_ID,
-      options: {},
-      index: 0,
-      total: 1,
-    });
-  });
-
   it('exposes the REST object metadata as read-only and without audit/auth/canonical fields', async () => {
     const objectMetadataId = await selectAduanaProjectionObjectMetadataId();
 

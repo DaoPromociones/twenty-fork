@@ -203,7 +203,14 @@ export class FlatObjectMetadataValidatorService {
       });
     }
 
-    if (flatObjectMetadataToValidate.isRemote) {
+    if (
+      flatObjectMetadataToValidate.isRemote &&
+      !(
+        buildOptions.isSystemBuild &&
+        isCallerTwentyStandardApp(buildOptions) &&
+        belongsToTwentyStandardApp(flatObjectMetadataToValidate)
+      )
+    ) {
       objectValidationResult.errors.push({
         code: ObjectMetadataExceptionCode.INVALID_OBJECT_INPUT,
         message: t`Remote objects are not supported yet`,
