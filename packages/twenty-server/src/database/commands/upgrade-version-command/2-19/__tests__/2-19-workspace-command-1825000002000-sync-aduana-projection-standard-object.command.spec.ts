@@ -23,22 +23,41 @@ const buildEmptyMaps = () =>
   ) as ReturnType<typeof buildStandardMaps>;
 
 const buildCommand = ({
+  schemaExists = true,
   tableExists,
   standardMetadataExists,
   migrationResult = { status: 'success' },
 }: {
+  schemaExists?: boolean;
   tableExists: boolean;
   standardMetadataExists: boolean;
   migrationResult?: { status: 'success' } | { status: 'fail'; reason: string };
 }) => {
   const queryRunner = {
-    query: jest.fn(async () => [{ exists: tableExists }]),
+    query: jest.fn(async (query: string) => [
+      {
+        exists: query.includes('information_schema.schemata')
+          ? schemaExists
+          : tableExists,
+      },
+    ]),
     release: jest.fn(),
   };
   const dataSource = { createQueryRunner: jest.fn(() => queryRunner) };
   const validateBuildAndRunWorkspaceMigration = jest
     .fn()
     .mockResolvedValue(migrationResult);
+  const findWorkspaceTwentyStandardAndCustomApplicationOrThrow = jest.fn(
+    async () => ({
+      twentyStandardFlatApplication: {
+        id: applicationId,
+        universalIdentifier: 'twenty-standard-application',
+      },
+    }),
+  );
+  const getOrRecompute = jest.fn(async () =>
+    standardMetadataExists ? buildStandardMaps() : buildEmptyMaps(),
+  );
   const schemaManager = {
     enumManager: { createEnum: jest.fn() },
     tableManager: { createTable: jest.fn() },
@@ -46,19 +65,10 @@ const buildCommand = ({
   const command = new SyncAduanaProjectionStandardObjectCommand(
     {} as never,
     {
-      findWorkspaceTwentyStandardAndCustomApplicationOrThrow: jest.fn(
-        async () => ({
-          twentyStandardFlatApplication: {
-            id: applicationId,
-            universalIdentifier: 'twenty-standard-application',
-          },
-        }),
-      ),
+      findWorkspaceTwentyStandardAndCustomApplicationOrThrow,
     } as never,
     {
-      getOrRecompute: jest.fn(async () =>
-        standardMetadataExists ? buildStandardMaps() : buildEmptyMaps(),
-      ),
+      getOrRecompute,
     } as never,
     { validateBuildAndRunWorkspaceMigration } as never,
     schemaManager as never,
@@ -68,6 +78,8 @@ const buildCommand = ({
   return {
     command,
     dataSource,
+    findWorkspaceTwentyStandardAndCustomApplicationOrThrow,
+    getOrRecompute,
     queryRunner,
     schemaManager,
     validateBuildAndRunWorkspaceMigration,
@@ -126,6 +138,26 @@ describe('SyncAduanaProjectionStandardObjectCommand', () => {
     );
   });
 
+  it('skips metadata sync and schema repair when the physical workspace schema is missing', async () => {
+    const missingSchema = buildCommand({
+      schemaExists: false,
+      tableExists: false,
+      standardMetadataExists: false,
+    });
+
+    await missingSchema.command.runOnWorkspace(runArgs);
+
+    expect(missingSchema.queryRunner.query).toHaveBeenCalledWith(
+      expect.stringContaining('information_schema.schemata'),
+      ['workspace_1wgvd1injqtife6y4rvfbu3h5'],
+    );
+    expect(
+      missingSchema.findWorkspaceTwentyStandardAndCustomApplicationOrThrow,
+    ).not.toHaveBeenCalled();
+    expect(missingSchema.getOrRecompute).not.toHaveBeenCalled();
+    expectNoSchemaOrMigrationMutation(missingSchema);
+  });
+
   it('does not repair schema or run migrations when metadata and table already exist', async () => {
     const existingTable = buildCommand({
       tableExists: true,
@@ -138,7 +170,7 @@ describe('SyncAduanaProjectionStandardObjectCommand', () => {
       expect.stringContaining('information_schema.tables'),
       ['workspace_1wgvd1injqtife6y4rvfbu3h5', 'aduanaProjection'],
     );
-    expect(existingTable.queryRunner.release).toHaveBeenCalledTimes(1);
+    expect(existingTable.queryRunner.release).toHaveBeenCalledTimes(2);
     expectNoSchemaOrMigrationMutation(existingTable);
   });
 

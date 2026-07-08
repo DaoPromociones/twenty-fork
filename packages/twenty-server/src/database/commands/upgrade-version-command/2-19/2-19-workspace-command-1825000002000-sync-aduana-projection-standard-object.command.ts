@@ -17,6 +17,7 @@ import { isFlatFieldMetadataOfType } from 'src/engine/metadata-modules/flat-fiel
 import { type FlatObjectMetadata } from 'src/engine/metadata-modules/flat-object-metadata/types/flat-object-metadata.type';
 import { WorkspaceSchemaManagerService } from 'src/engine/twenty-orm/workspace-schema-manager/workspace-schema-manager.service';
 import { WorkspaceCacheService } from 'src/engine/workspace-cache/services/workspace-cache.service';
+import { getWorkspaceSchemaName } from 'src/engine/workspace-datasource/utils/get-workspace-schema-name.util';
 import { computeTwentyStandardApplicationAllFlatEntityMaps } from 'src/engine/workspace-manager/twenty-standard-application/utils/twenty-standard-application-all-flat-entity-maps.constant';
 import { WorkspaceMigrationValidateBuildAndRunService } from 'src/engine/workspace-manager/workspace-migration/services/workspace-migration-validate-build-and-run-service';
 import { getWorkspaceSchemaContextForMigration } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-runner/utils/get-workspace-schema-context-for-migration.util';
@@ -58,6 +59,16 @@ export class SyncAduanaProjectionStandardObjectCommand extends ActiveOrSuspended
   }
 
   override async runOnWorkspace({ workspaceId, options }: RunOnWorkspaceArgs) {
+    const isDryRun = options.dryRun ?? false;
+
+    if (!isDryRun && !(await this.doesWorkspaceSchemaExist(workspaceId))) {
+      this.logger.log(
+        `Workspace schema does not exist for workspace ${workspaceId}, skipping`,
+      );
+
+      return;
+    }
+
     const { twentyStandardFlatApplication } =
       await this.applicationService.findWorkspaceTwentyStandardAndCustomApplicationOrThrow(
         { workspaceId },
@@ -84,7 +95,7 @@ export class SyncAduanaProjectionStandardObjectCommand extends ActiveOrSuspended
       ];
     const missingTableRepaired =
       isDefined(existingAduanaObject) &&
-      !options.dryRun &&
+      !isDryRun &&
       !(await this.doesWorkspaceTableExist({
         workspaceId,
         existingAduanaObject,
@@ -138,7 +149,7 @@ export class SyncAduanaProjectionStandardObjectCommand extends ActiveOrSuspended
 
       return;
     }
-    if (options.dryRun) {
+    if (isDryRun) {
       this.logger.log(
         `[DRY RUN] Would apply ${operationCount} AduanaProjection standard metadata operations for workspace ${workspaceId}`,
       );
@@ -160,6 +171,22 @@ export class SyncAduanaProjectionStandardObjectCommand extends ActiveOrSuspended
       throw new Error(
         `Failed to sync AduanaProjection standard metadata for workspace ${workspaceId}: ${JSON.stringify(result, null, 2)}`,
       );
+    }
+  }
+
+  private async doesWorkspaceSchemaExist(workspaceId: string) {
+    const schemaName = getWorkspaceSchemaName(workspaceId);
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    try {
+      const rows = await queryRunner.query(
+        `SELECT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = $1) AS "exists"`,
+        [schemaName],
+      );
+
+      return rows[0]?.exists === true;
+    } finally {
+      await queryRunner.release();
     }
   }
 
