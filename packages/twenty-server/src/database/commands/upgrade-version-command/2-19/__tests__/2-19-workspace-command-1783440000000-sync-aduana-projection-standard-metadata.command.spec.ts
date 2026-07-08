@@ -204,6 +204,43 @@ describe('SyncAduanaProjectionStandardMetadataCommand', () => {
     );
   });
 
+  it('falls back to core object and field metadata when stale dependent metadata prevents full sync', async () => {
+    validateBuildAndRunWorkspaceMigration
+      .mockResolvedValueOnce({
+        status: 'fail',
+        reason: 'Field metadata not found while creating viewField',
+      } as unknown as ValidateBuildAndRunWorkspaceMigrationResult)
+      .mockResolvedValueOnce(successResult);
+
+    await command.runOnWorkspace({
+      workspaceId: WORKSPACE_ID,
+      dataSource: dataSource as never,
+      options: {},
+      index: 0,
+      total: 1,
+    });
+
+    expect(validateBuildAndRunWorkspaceMigration).toHaveBeenCalledTimes(2);
+
+    const retryOperations = validateBuildAndRunWorkspaceMigration.mock.calls[1]?.[0]
+      .allFlatEntityOperationByMetadataName as
+      | AllFlatEntityOperationByMetadataName
+      | undefined;
+
+    expect(Object.keys(retryOperations ?? {}).sort()).toEqual([
+      'fieldMetadata',
+      'objectMetadata',
+    ]);
+    expect(retryOperations?.objectMetadata?.flatEntityToCreate).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ nameSingular: 'aduanaProjection' }),
+      ]),
+    );
+    expect(retryOperations?.fieldMetadata?.flatEntityToCreate).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'eventId' })]),
+    );
+  });
+
   it('renames custom AduanaProjection name collisions before creating standard metadata', async () => {
     jest.useFakeTimers().setSystemTime(new Date(NOW));
 

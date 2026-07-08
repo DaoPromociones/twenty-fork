@@ -203,6 +203,18 @@ const ADUANA_PROJECTION_PAGE_LAYOUT_WIDGET_UNIVERSAL_IDENTIFIERS = [
     .timeline.widgets.timeline.universalIdentifier,
 ];
 
+const DEPENDENCY_REPAIR_ERROR_MESSAGES = [
+  'Field metadata not found',
+  'View not found',
+  'Object metadata not found',
+  'TS_VECTOR_FIELD_METADATA_NOT_FOUND',
+];
+
+const shouldRetryWithCoreMetadataOnly = (result: unknown): boolean =>
+  DEPENDENCY_REPAIR_ERROR_MESSAGES.some((message) =>
+    JSON.stringify(result).includes(message),
+  );
+
 @RegisteredWorkspaceCommand('2.19.0', 1783440000000)
 @Command({
   name: 'upgrade:2-19:sync-aduana-projection-standard-metadata',
@@ -434,7 +446,7 @@ export class SyncAduanaProjectionStandardMetadataCommand extends ActiveOrSuspend
       return;
     }
 
-    const validateAndBuildResult =
+    let validateAndBuildResult =
       await this.workspaceMigrationValidateBuildAndRunService.validateBuildAndRunWorkspaceMigration(
         {
           isSystemBuild: true,
@@ -444,6 +456,25 @@ export class SyncAduanaProjectionStandardMetadataCommand extends ActiveOrSuspend
           allFlatEntityOperationByMetadataName,
         },
       );
+
+    if (
+      validateAndBuildResult.status === 'fail' &&
+      shouldRetryWithCoreMetadataOnly(validateAndBuildResult)
+    ) {
+      validateAndBuildResult =
+        await this.workspaceMigrationValidateBuildAndRunService.validateBuildAndRunWorkspaceMigration(
+          {
+            isSystemBuild: true,
+            applicationUniversalIdentifier:
+              twentyStandardFlatApplication.universalIdentifier,
+            workspaceId,
+            allFlatEntityOperationByMetadataName: {
+              objectMetadata: allFlatEntityOperationByMetadataName.objectMetadata,
+              fieldMetadata: allFlatEntityOperationByMetadataName.fieldMetadata,
+            },
+          },
+        );
+    }
 
     if (validateAndBuildResult.status === 'fail') {
       throw new Error(
