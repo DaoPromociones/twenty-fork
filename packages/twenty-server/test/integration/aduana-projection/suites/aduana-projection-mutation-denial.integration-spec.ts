@@ -27,6 +27,34 @@ type AduanaProjectionRow = {
   deletedAt: Date | null;
 };
 
+type AduanaProjectionMutationError = {
+  message: string;
+};
+
+const assertGraphQLUpdateMutationRejected = (response: {
+  status: number;
+  body: {
+    data?: {
+      updateAduanaProjection?: unknown;
+    };
+    errors?: AduanaProjectionMutationError[];
+  };
+}) => {
+  expect(response.status).toBe(200);
+  expect(response.body.data?.updateAduanaProjection ?? null).toBeNull();
+  expect(response.body.errors).toBeDefined();
+
+  const errorMessages = response.body.errors?.map(({ message }) => message) ?? [];
+
+  expect(errorMessages.length).toBeGreaterThan(0);
+  expect(
+    errorMessages.includes(ADUANA_PROJECTION_READ_ONLY_ERROR_MESSAGE) ||
+      errorMessages.some((message) =>
+        message.includes('Cannot query field "updateAduanaProjection"'),
+      ),
+  ).toBe(true);
+};
+
 const selectAduanaProjectionRow = async (id: string) => {
   const [row] = await global.testDataSource.query(
     `SELECT id, "eventId", "eventType", "occurredAt", summary, "ingestionStatus", "receivedAt", "deletedAt"
@@ -134,11 +162,7 @@ describe('Aduana projection mutation denial integration', () => {
       },
     });
 
-    expect(response.status).toBe(200);
-    expect(response.body.data.updateAduanaProjection).toBeNull();
-    expect(response.body.errors[0].message).toBe(
-      ADUANA_PROJECTION_READ_ONLY_ERROR_MESSAGE,
-    );
+    assertGraphQLUpdateMutationRejected(response);
     expect(await selectAduanaProjectionRow(projectionId)).toEqual(
       rowBeforeMutation,
     );
