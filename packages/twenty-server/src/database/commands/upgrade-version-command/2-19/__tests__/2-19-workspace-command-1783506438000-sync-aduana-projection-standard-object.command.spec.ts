@@ -1,4 +1,4 @@
-import { SyncAduanaProjectionStandardObjectCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-workspace-command-1825000002000-sync-aduana-projection-standard-object.command';
+import { SyncAduanaProjectionStandardObjectCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-workspace-command-1783506438000-sync-aduana-projection-standard-object.command';
 import { computeTwentyStandardApplicationAllFlatEntityMaps } from 'src/engine/workspace-manager/twenty-standard-application/utils/twenty-standard-application-all-flat-entity-maps.constant';
 
 const workspaceId = '20202020-1c25-4d02-bf25-6aeccf7ea419';
