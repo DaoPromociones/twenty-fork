@@ -38,6 +38,41 @@ const selectAduanaProjectionRow = async (id: string) => {
   return row as AduanaProjectionRow | undefined;
 };
 
+const doesAduanaProjectionTableExist = async () => {
+  const [row] = await global.testDataSource.query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM information_schema.tables
+       WHERE table_schema = $1
+       AND table_name = 'aduanaProjection'
+     ) AS "exists"`,
+    [TEST_SCHEMA_NAME],
+  );
+
+  return row?.exists === true;
+};
+
+const ensureAduanaProjectionTableExists = async () => {
+  await global.testDataSource.query(
+    `CREATE SCHEMA IF NOT EXISTS "${TEST_SCHEMA_NAME}"`,
+  );
+
+  await global.testDataSource.query(
+    `CREATE TABLE IF NOT EXISTS "${TEST_SCHEMA_NAME}"."aduanaProjection" (
+       id uuid PRIMARY KEY,
+       "eventId" text NOT NULL,
+       "eventType" text NOT NULL,
+       "occurredAt" timestamptz NOT NULL,
+       "sourceRecordId" text NOT NULL,
+       "evidenceId" text NOT NULL,
+       summary text,
+       "ingestionStatus" text NOT NULL,
+       "receivedAt" timestamptz NOT NULL,
+       "deletedAt" timestamptz
+     )`,
+  );
+};
+
 const insertAduanaProjectionRow = async (id: string) => {
   await global.testDataSource.query(
     `INSERT INTO "${TEST_SCHEMA_NAME}"."aduanaProjection"
@@ -57,6 +92,10 @@ const insertAduanaProjectionRow = async (id: string) => {
 };
 
 const deleteAduanaProjectionRows = async () => {
+  if (!(await doesAduanaProjectionTableExist())) {
+    return;
+  }
+
   await global.testDataSource.query(
     `DELETE FROM "${TEST_SCHEMA_NAME}"."aduanaProjection"`,
   );
@@ -66,6 +105,7 @@ describe('Aduana projection mutation denial integration', () => {
   const projectionId = randomUUID();
 
   beforeEach(async () => {
+    await ensureAduanaProjectionTableExists();
     await deleteAduanaProjectionRows();
     await insertAduanaProjectionRow(projectionId);
   });
