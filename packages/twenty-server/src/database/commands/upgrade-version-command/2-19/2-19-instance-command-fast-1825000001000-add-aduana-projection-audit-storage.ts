@@ -3,7 +3,7 @@ import { type QueryRunner } from 'typeorm';
 import { RegisteredInstanceCommand } from 'src/engine/core-modules/upgrade/decorators/registered-instance-command.decorator';
 import { type FastInstanceCommand } from 'src/engine/core-modules/upgrade/interfaces/fast-instance-command.interface';
 
-@RegisteredInstanceCommand('2.20.0', 1825000001000)
+@RegisteredInstanceCommand('2.19.0', 1825000001000)
 export class AddAduanaProjectionAuditStorageFastInstanceCommand
   implements FastInstanceCommand
 {

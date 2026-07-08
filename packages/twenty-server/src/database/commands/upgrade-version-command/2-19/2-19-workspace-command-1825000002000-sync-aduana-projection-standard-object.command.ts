@@ -39,9 +39,9 @@ const ADUANA_OBJECT_IDS = [
 ];
 const ADUANA_FIELD_IDS = ids(STANDARD_OBJECTS.aduanaProjection.fields);
 
-@RegisteredWorkspaceCommand('2.20.0', 1825000002000)
+@RegisteredWorkspaceCommand('2.19.0', 1825000002000)
 @Command({
-  name: 'upgrade:2-20:sync-aduana-projection-standard-object',
+  name: 'upgrade:2-19:sync-aduana-projection-standard-object',
   description:
     'Create or repair AduanaProjection standard metadata and workspace table for existing workspaces',
 })
