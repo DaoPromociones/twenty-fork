@@ -3,6 +3,12 @@ import { computeTwentyStandardApplicationAllFlatEntityMaps } from 'src/engine/wo
 
 const workspaceId = '20202020-1c25-4d02-bf25-6aeccf7ea419';
 const applicationId = 'twenty-standard-application-id';
+const workspaceSchemaName = 'workspace_1wgvd1injqtife6y4rvfbu3h5';
+const aduanaProjectionEnumNames = [
+  'aduanaProjection_ingestionStatus_enum',
+  'aduanaProjection_createdBySource_enum',
+  'aduanaProjection_updatedBySource_enum',
+];
 const runArgs = { workspaceId, options: {}, index: 0, total: 1 };
 const dryRunArgs = { ...runArgs, options: { dryRun: true } };
 
@@ -24,23 +30,31 @@ const buildEmptyMaps = () =>
 
 const buildCommand = ({
   schemaExists = true,
+  existingEnumNames = [],
   tableExists,
   standardMetadataExists,
   migrationResult = { status: 'success' },
 }: {
   schemaExists?: boolean;
+  existingEnumNames?: string[];
   tableExists: boolean;
   standardMetadataExists: boolean;
   migrationResult?: { status: 'success' } | { status: 'fail'; reason: string };
 }) => {
   const queryRunner = {
-    query: jest.fn(async (query: string) => [
-      {
-        exists: query.includes('information_schema.schemata')
-          ? schemaExists
-          : tableExists,
-      },
-    ]),
+    query: jest.fn(async (query: string, _parameters?: unknown[]) => {
+      if (query.includes('pg_type')) {
+        return existingEnumNames.map((enumName) => ({ enumName }));
+      }
+
+      return [
+        {
+          exists: query.includes('information_schema.schemata')
+            ? schemaExists
+            : tableExists,
+        },
+      ];
+    }),
     release: jest.fn(),
   };
   const dataSource = { createQueryRunner: jest.fn(() => queryRunner) };
@@ -181,7 +195,9 @@ describe('SyncAduanaProjectionStandardObjectCommand', () => {
       migrationResult: { status: 'fail', reason: 'invalid metadata operation' },
     });
 
-    await expect(missingMetadata.command.runOnWorkspace(runArgs)).rejects.toThrow(
+    await expect(
+      missingMetadata.command.runOnWorkspace(runArgs),
+    ).rejects.toThrow(
       `Failed to sync AduanaProjection standard metadata for workspace ${workspaceId}`,
     );
   });
@@ -194,20 +210,59 @@ describe('SyncAduanaProjectionStandardObjectCommand', () => {
 
     await missingTable.command.runOnWorkspace(runArgs);
 
-    expect(missingTable.schemaManager.enumManager.createEnum).toHaveBeenCalledWith(
+    expect(
+      missingTable.schemaManager.enumManager.createEnum,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         enumName: 'aduanaProjection_ingestionStatus_enum',
         values: ['ACCEPTED', 'REPLAYED', 'QUARANTINED'],
       }),
     );
-    expect(missingTable.schemaManager.tableManager.createTable).toHaveBeenCalledWith(
+    expect(
+      missingTable.schemaManager.tableManager.createTable,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         columnDefinitions: expect.arrayContaining([
           expect.objectContaining({ name: 'eventId' }),
           expect.objectContaining({ name: 'ingestionStatus' }),
           expect.objectContaining({ name: 'searchVector' }),
         ]),
-        schemaName: 'workspace_1wgvd1injqtife6y4rvfbu3h5',
+        schemaName: workspaceSchemaName,
+        tableName: 'aduanaProjection',
+      }),
+    );
+  });
+
+  it('repairs a missing physical table after a prior enum-created failure', async () => {
+    const retryAfterPartialFailure = buildCommand({
+      existingEnumNames: aduanaProjectionEnumNames,
+      tableExists: false,
+      standardMetadataExists: true,
+    });
+
+    await retryAfterPartialFailure.command.runOnWorkspace(runArgs);
+
+    expect(
+      retryAfterPartialFailure.schemaManager.enumManager.createEnum,
+    ).not.toHaveBeenCalled();
+    const enumLookupCall =
+      retryAfterPartialFailure.queryRunner.query.mock.calls.find(([query]) =>
+        query.includes('pg_type'),
+      );
+
+    expect(enumLookupCall).toEqual([
+      expect.stringContaining('pg_type'),
+      [workspaceSchemaName, aduanaProjectionEnumNames],
+    ]);
+    expect(
+      retryAfterPartialFailure.schemaManager.tableManager.createTable,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        columnDefinitions: expect.arrayContaining([
+          expect.objectContaining({ name: 'eventId' }),
+          expect.objectContaining({ name: 'ingestionStatus' }),
+        ]),
+        schemaName: workspaceSchemaName,
         tableName: 'aduanaProjection',
       }),
     );

@@ -26,6 +26,7 @@ import { getTargetSearchFieldMetadatasForTsVectorField } from 'src/engine/metada
 import { generateColumnDefinitions } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-runner/utils/generate-column-definitions.util';
 import {
   collectEnumOperationsForObject,
+  type CreateEnumOperationSpec,
   EnumOperation,
   executeBatchEnumOperations,
 } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-runner/utils/workspace-schema-enum-operations.util';
@@ -241,8 +242,23 @@ export class SyncAduanaProjectionStandardObjectCommand extends ActiveOrSuspended
         tableName,
         operation: EnumOperation.CREATE,
       });
+      const existingEnumNames = await this.getExistingEnumNames({
+        enumNames: enumOperations
+          .filter(
+            (enumOperation): enumOperation is CreateEnumOperationSpec =>
+              enumOperation.operation === EnumOperation.CREATE,
+          )
+          .map(({ enumName }) => enumName),
+        queryRunner,
+        schemaName,
+      });
+
       await executeBatchEnumOperations({
-        enumOperations,
+        enumOperations: enumOperations.filter(
+          (enumOperation) =>
+            enumOperation.operation !== EnumOperation.CREATE ||
+            !existingEnumNames.has(enumOperation.enumName),
+        ),
         queryRunner,
         schemaName,
         workspaceSchemaManagerService: this.workspaceSchemaManagerService,
@@ -283,4 +299,28 @@ export class SyncAduanaProjectionStandardObjectCommand extends ActiveOrSuspended
     }
   }
 
+  private async getExistingEnumNames({
+    enumNames,
+    queryRunner,
+    schemaName,
+  }: {
+    enumNames: string[];
+    queryRunner: ReturnType<DataSource['createQueryRunner']>;
+    schemaName: string;
+  }) {
+    if (enumNames.length === 0) {
+      return new Set<string>();
+    }
+
+    const rows: Array<{ enumName?: unknown }> = await queryRunner.query(
+      `SELECT t.typname AS "enumName" FROM pg_type t INNER JOIN pg_namespace n ON n.oid = t.typnamespace WHERE n.nspname = $1 AND t.typname = ANY($2)`,
+      [schemaName, enumNames],
+    );
+
+    return new Set(
+      rows
+        .map((row) => row.enumName)
+        .filter((enumName): enumName is string => typeof enumName === 'string'),
+    );
+  }
 }
