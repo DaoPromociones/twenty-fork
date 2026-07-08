@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
 import { msg } from '@lingui/core/macro';
-import { ALL_METADATA_NAME } from 'twenty-shared/metadata';
+import isEqual from 'lodash.isequal';
+import { ALL_METADATA_NAME, STANDARD_OBJECTS } from 'twenty-shared/metadata';
 import { isFieldMetadataTypeWithDefaultValue } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
 
@@ -15,11 +16,110 @@ import { isFlatFieldMetadataNameSyncedWithLabel } from 'src/engine/metadata-modu
 import { isMorphOrRelationUniversalFlatFieldMetadata } from 'src/engine/metadata-modules/flat-field-metadata/utils/is-morph-or-relation-flat-field-metadata.util';
 import { validateFlatFieldMetadataNameAvailability } from 'src/engine/metadata-modules/flat-field-metadata/validators/utils/validate-flat-field-metadata-name-availability.util';
 import { validateFlatFieldMetadataName } from 'src/engine/metadata-modules/flat-field-metadata/validators/utils/validate-flat-field-metadata-name.util';
+import { belongsToTwentyStandardApp } from 'src/engine/metadata-modules/utils/belongs-to-twenty-standard-app.util';
+import { isCallerTwentyStandardApp } from 'src/engine/metadata-modules/utils/is-caller-twenty-standard-app.util';
+import { getStandardObjectMetadataRelatedEntityIds } from 'src/engine/workspace-manager/twenty-standard-application/utils/get-standard-object-metadata-related-entity-ids.util';
+import { buildAduanaProjectionStandardFlatFieldMetadatas } from 'src/engine/workspace-manager/twenty-standard-application/utils/field-metadata/compute-aduana-projection-standard-flat-field-metadata.util';
 import { UniversalFlatFieldMetadata } from 'src/engine/workspace-manager/workspace-migration/universal-flat-entity/types/universal-flat-field-metadata.type';
+import { type UniversalFlatObjectMetadata } from 'src/engine/workspace-manager/workspace-migration/universal-flat-entity/types/universal-flat-object-metadata.type';
 import { FailedFlatEntityValidation } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-builder/builders/types/failed-flat-entity-validation.type';
 import { getEmptyFlatEntityValidationError } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-builder/builders/utils/get-flat-entity-validation-error.util';
 import { FlatEntityUpdateValidationArgs } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-builder/types/universal-flat-entity-update-validation-args.type';
 import { UniversalFlatEntityValidationArgs } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-builder/types/universal-flat-entity-validation-args.type';
+import { type WorkspaceMigrationBuilderOptions } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-builder/types/workspace-migration-builder-options.type';
+
+const ADUANA_PROJECTION_STANDARD_FIELD_UNIVERSAL_IDENTIFIERS = new Set<string>(
+  Object.values(STANDARD_OBJECTS.aduanaProjection.fields).map(
+    ({ universalIdentifier }) => universalIdentifier,
+  ),
+);
+
+const ADUANA_PROJECTION_STANDARD_FIELD_METADATA_BY_UNIVERSAL_IDENTIFIER =
+  Object.fromEntries(
+    Object.values(
+      buildAduanaProjectionStandardFlatFieldMetadatas({
+        objectName: 'aduanaProjection',
+        workspaceId: 'workspace-id',
+        now: '2026-01-01T00:00:00.000Z',
+        twentyStandardApplicationId: 'twenty-standard-application-id',
+        standardObjectMetadataRelatedEntityIds:
+          getStandardObjectMetadataRelatedEntityIds({
+            includeAduanaProjection: true,
+          }),
+      }),
+    ).map((flatFieldMetadata) => [
+      flatFieldMetadata.universalIdentifier,
+      flatFieldMetadata,
+    ]),
+  );
+
+const ADUANA_PROJECTION_STANDARD_FIELD_PROPERTIES_TO_COMPARE = [
+  'universalIdentifier',
+  'type',
+  'name',
+  'label',
+  'description',
+  'icon',
+  'isActive',
+  'isSystem',
+  'isSystemSideEffect',
+  'isNullable',
+  'isUnique',
+  'isUIEditable',
+  'isLabelSyncedWithName',
+  'overrides',
+  'defaultValue',
+  'settings',
+  'options',
+  'relationTargetObjectMetadataUniversalIdentifier',
+  'relationTargetFieldMetadataUniversalIdentifier',
+  'universalSettings',
+] as const satisfies (keyof UniversalFlatFieldMetadata)[];
+
+const isMatchingPredefinedAduanaProjectionStandardField = (
+  flatFieldMetadataToValidate: UniversalFlatFieldMetadata,
+) => {
+  const expectedFlatFieldMetadata =
+    ADUANA_PROJECTION_STANDARD_FIELD_METADATA_BY_UNIVERSAL_IDENTIFIER[
+      flatFieldMetadataToValidate.universalIdentifier
+    ];
+
+  if (!isDefined(expectedFlatFieldMetadata)) {
+    return false;
+  }
+
+  return ADUANA_PROJECTION_STANDARD_FIELD_PROPERTIES_TO_COMPARE.every(
+    (property) =>
+      isEqual(
+        flatFieldMetadataToValidate[property],
+        expectedFlatFieldMetadata[property],
+      ),
+  );
+};
+
+const isAduanaProjectionStandardSystemFieldCreation = ({
+  buildOptions,
+  flatFieldMetadataToValidate,
+  parentFlatObjectMetadata,
+}: {
+  buildOptions: WorkspaceMigrationBuilderOptions;
+  flatFieldMetadataToValidate: UniversalFlatFieldMetadata;
+  parentFlatObjectMetadata: UniversalFlatObjectMetadata;
+}) =>
+  buildOptions.isSystemBuild &&
+  isCallerTwentyStandardApp(buildOptions) &&
+  belongsToTwentyStandardApp(parentFlatObjectMetadata) &&
+  parentFlatObjectMetadata.universalIdentifier ===
+    STANDARD_OBJECTS.aduanaProjection.universalIdentifier &&
+  parentFlatObjectMetadata.isSystem === true &&
+  parentFlatObjectMetadata.isRemote === true &&
+  belongsToTwentyStandardApp(flatFieldMetadataToValidate) &&
+  ADUANA_PROJECTION_STANDARD_FIELD_UNIVERSAL_IDENTIFIERS.has(
+    flatFieldMetadataToValidate.universalIdentifier,
+  ) &&
+  isMatchingPredefinedAduanaProjectionStandardField(
+    flatFieldMetadataToValidate,
+  );
 
 @Injectable()
 export class FlatFieldMetadataValidatorService {
@@ -358,7 +458,14 @@ export class FlatFieldMetadataValidatorService {
         });
       }
 
-      if (parentFlatObjectMetadata.isRemote === true) {
+      if (
+        parentFlatObjectMetadata.isRemote === true &&
+        !isAduanaProjectionStandardSystemFieldCreation({
+          buildOptions,
+          flatFieldMetadataToValidate,
+          parentFlatObjectMetadata,
+        })
+      ) {
         validationResult.errors.push({
           code: FieldMetadataExceptionCode.FIELD_MUTATION_NOT_ALLOWED,
           message: 'Remote objects are read-only',
