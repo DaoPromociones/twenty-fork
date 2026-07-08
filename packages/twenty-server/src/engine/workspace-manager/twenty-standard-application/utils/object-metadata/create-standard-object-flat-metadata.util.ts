@@ -15,6 +15,7 @@ export type CreateStandardObjectContext<O extends AllStandardObjectName> = {
   description: string;
   icon: string;
   isSystem?: boolean;
+  isRemote?: boolean;
   isSearchable?: boolean;
   isAuditLogged?: boolean;
   isUIEditable?: boolean;
@@ -44,6 +45,7 @@ export const createStandardObjectFlatMetadata = <
     description,
     icon,
     isSystem = false,
+    isRemote = false,
     isSearchable = false,
     isAuditLogged = true,
     isUIEditable = true,
@@ -83,7 +85,7 @@ export const createStandardObjectFlatMetadata = <
     color: null,
     description,
     icon,
-    isRemote: false,
+    isRemote,
     isActive: true,
     isSystem,
     isSearchable,

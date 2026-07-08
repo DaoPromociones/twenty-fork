@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { msg, t } from '@lingui/core/macro';
-import { ALL_METADATA_NAME } from 'twenty-shared/metadata';
+import { ALL_METADATA_NAME, STANDARD_OBJECTS } from 'twenty-shared/metadata';
 import { isDefined } from 'twenty-shared/utils';
 
 import { findFlatEntityByUniversalIdentifier } from 'src/engine/metadata-modules/flat-entity/utils/find-flat-entity-by-universal-identifier.util';
@@ -13,6 +13,16 @@ import { FailedFlatEntityValidation } from 'src/engine/workspace-manager/workspa
 import { getEmptyFlatEntityValidationError } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-builder/builders/utils/get-flat-entity-validation-error.util';
 import { FlatEntityUpdateValidationArgs } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-builder/types/universal-flat-entity-update-validation-args.type';
 import { UniversalFlatEntityValidationArgs } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-builder/types/universal-flat-entity-validation-args.type';
+
+const isAduanaProjectionStandardSystemObject = ({
+  universalIdentifier,
+  isSystem,
+}: {
+  universalIdentifier: string;
+  isSystem: boolean;
+}) =>
+  universalIdentifier ===
+    STANDARD_OBJECTS.aduanaProjection.universalIdentifier && isSystem;
 
 @Injectable()
 export class FlatObjectMetadataValidatorService {
@@ -203,7 +213,15 @@ export class FlatObjectMetadataValidatorService {
       });
     }
 
-    if (flatObjectMetadataToValidate.isRemote) {
+    if (
+      flatObjectMetadataToValidate.isRemote &&
+      !(
+        buildOptions.isSystemBuild &&
+        isCallerTwentyStandardApp(buildOptions) &&
+        isAduanaProjectionStandardSystemObject(flatObjectMetadataToValidate) &&
+        belongsToTwentyStandardApp(flatObjectMetadataToValidate)
+      )
+    ) {
       objectValidationResult.errors.push({
         code: ObjectMetadataExceptionCode.INVALID_OBJECT_INPUT,
         message: t`Remote objects are not supported yet`,

@@ -55,6 +55,7 @@ describe('AduanaProjection core standard metadata build', () => {
       nameSingular: 'aduanaProjection',
       isSystem: true,
       isSearchable: true,
+      isRemote: true,
       isUICreatable: false,
       isUIEditable: false,
       labelIdentifierFieldMetadataId:
