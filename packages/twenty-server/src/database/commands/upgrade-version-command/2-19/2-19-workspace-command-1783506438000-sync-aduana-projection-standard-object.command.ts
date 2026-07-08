@@ -41,7 +41,7 @@ const ADUANA_OBJECT_IDS = [
 ];
 const ADUANA_FIELD_IDS = ids(STANDARD_OBJECTS.aduanaProjection.fields);
 
-@RegisteredWorkspaceCommand('2.19.0', 1825000002000)
+@RegisteredWorkspaceCommand('2.19.0', 1783506438000)
 @Command({
   name: 'upgrade:2-19:sync-aduana-projection-standard-object',
   description:

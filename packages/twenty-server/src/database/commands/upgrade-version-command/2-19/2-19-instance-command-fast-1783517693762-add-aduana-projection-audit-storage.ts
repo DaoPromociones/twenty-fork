@@ -3,7 +3,7 @@ import { type QueryRunner } from 'typeorm';
 import { RegisteredInstanceCommand } from 'src/engine/core-modules/upgrade/decorators/registered-instance-command.decorator';
 import { type FastInstanceCommand } from 'src/engine/core-modules/upgrade/interfaces/fast-instance-command.interface';
 
-@RegisteredInstanceCommand('2.19.0', 1825000001000)
+@RegisteredInstanceCommand('2.19.0', 1783517693762)
 export class AddAduanaProjectionAuditStorageFastInstanceCommand
   implements FastInstanceCommand
 {
@@ -32,15 +32,9 @@ export class AddAduanaProjectionAuditStorageFastInstanceCommand
     await queryRunner.query(
       `CREATE UNIQUE INDEX IF NOT EXISTS "IDX_ADUANA_PROJECTION_AUDIT_WORKSPACE_NONCE" ON "core"."aduanaProjectionAudit" ("workspaceId", "authNonce")`,
     );
-    await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "IDX_ADUANA_PROJECTION_AUDIT_CANONICAL_HASH" ON "core"."aduanaProjectionAudit" ("canonicalHash")`,
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `DROP INDEX IF EXISTS "core"."IDX_ADUANA_PROJECTION_AUDIT_CANONICAL_HASH"`,
-    );
     await queryRunner.query(
       `DROP INDEX IF EXISTS "core"."IDX_ADUANA_PROJECTION_AUDIT_WORKSPACE_NONCE"`,
     );

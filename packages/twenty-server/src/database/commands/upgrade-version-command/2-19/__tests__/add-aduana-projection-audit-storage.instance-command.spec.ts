@@ -1,4 +1,4 @@
-import { AddAduanaProjectionAuditStorageFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-instance-command-fast-1825000001000-add-aduana-projection-audit-storage';
+import { AddAduanaProjectionAuditStorageFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-instance-command-fast-1783517693762-add-aduana-projection-audit-storage';
 
 describe('AddAduanaProjectionAuditStorageFastInstanceCommand', () => {
   it('should create audit storage indexes and rollback them', async () => {
@@ -22,10 +22,6 @@ describe('AddAduanaProjectionAuditStorageFastInstanceCommand', () => {
           'DROP INDEX IF EXISTS "core"."IDX_ADUANA_PROJECTION_AUDIT_WORKSPACE_EVENT"',
         ),
         expect.stringContaining('IDX_ADUANA_PROJECTION_AUDIT_WORKSPACE_NONCE'),
-        expect.stringContaining('IDX_ADUANA_PROJECTION_AUDIT_CANONICAL_HASH'),
-        expect.stringContaining(
-          'DROP INDEX IF EXISTS "core"."IDX_ADUANA_PROJECTION_AUDIT_CANONICAL_HASH"',
-        ),
         expect.stringContaining(
           'DROP INDEX IF EXISTS "core"."IDX_ADUANA_PROJECTION_AUDIT_ACCEPTED_WORKSPACE_EVENT"',
         ),
