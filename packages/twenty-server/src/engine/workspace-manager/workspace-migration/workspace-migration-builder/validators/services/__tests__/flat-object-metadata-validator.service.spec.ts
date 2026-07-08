@@ -68,4 +68,59 @@ describe('FlatObjectMetadataValidatorService', () => {
       ]),
     );
   });
+
+  it.each([
+    {
+      title: 'a non-Aduana standard object',
+      objectMetadata: {
+        universalIdentifier: STANDARD_OBJECTS.note.universalIdentifier,
+        isSystem: true,
+        nameSingular: 'note',
+        namePlural: 'notes',
+        labelSingular: 'Note',
+        labelPlural: 'Notes',
+      },
+    },
+    {
+      title: 'a non-system Aduana object',
+      objectMetadata: {
+        universalIdentifier:
+          STANDARD_OBJECTS.aduanaProjection.universalIdentifier,
+        isSystem: false,
+        nameSingular: 'aduanaProjection',
+        namePlural: 'aduanaProjections',
+        labelSingular: 'Aduana Projection',
+        labelPlural: 'Aduana Projections',
+      },
+    },
+  ])(
+    'rejects standard-app system-build remote creation for $title',
+    ({ objectMetadata }) => {
+      const result = validator.validateFlatObjectMetadataCreation({
+        flatEntityToValidate: getFlatObjectMetadataMock({
+          ...objectMetadata,
+          applicationUniversalIdentifier:
+            TWENTY_STANDARD_APPLICATION_UNIVERSAL_IDENTIFIER,
+          isRemote: true,
+        }),
+        optimisticFlatEntityMapsAndRelatedFlatEntityMaps: {
+          flatObjectMetadataMaps: createEmptyFlatEntityMaps(),
+        },
+        buildOptions: {
+          isSystemBuild: true,
+          applicationUniversalIdentifier:
+            TWENTY_STANDARD_APPLICATION_UNIVERSAL_IDENTIFIER,
+        },
+      } as never);
+
+      expect(result.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: ObjectMetadataExceptionCode.INVALID_OBJECT_INPUT,
+            message: 'Remote objects are not supported yet',
+          }),
+        ]),
+      );
+    },
+  );
 });
