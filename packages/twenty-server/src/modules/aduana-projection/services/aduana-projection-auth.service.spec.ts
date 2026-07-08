@@ -8,15 +8,20 @@ describe('AduanaProjectionAuthService', () => {
   const rawBody = Buffer.from('{"eventId":"evt-1"}', 'utf8');
   const secret = 'test-secret-never-real';
 
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(fixedNow);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   const buildAuth = () =>
-    new AduanaProjectionAuthService(
-      {
-        getSecretForWorkspace: jest.fn((workspaceId: string) =>
-          workspaceId === 'workspace-1' ? secret : undefined,
-        ),
-      },
-      () => fixedNow,
-    );
+    new AduanaProjectionAuthService({
+      getSecretForWorkspace: jest.fn((workspaceId: string) =>
+        workspaceId === 'workspace-1' ? secret : undefined,
+      ),
+    });
 
   const buildHeaders = (overrides: Record<string, string> = {}) => {
     const baseHeaders = {

@@ -149,7 +149,7 @@ export const buildAduanaProjectionStandardFlatFieldMetadatas = (
     args,
     context: {
       fieldName: 'summary',
-      type: FieldMetadataType.RICH_TEXT,
+      type: FieldMetadataType.TEXT,
       label: i18nLabel(msg`Summary`),
       description: i18nLabel(msg`Non-authoritative Aduana projection summary`),
       icon: 'IconFileText',
