@@ -7,6 +7,10 @@ services:
       - server-local-data:/app/packages/twenty-server/.local-storage
     ports:
       - "3000:3000"
+    networks:
+      - default
+      # Receiver-only boundary for Aduana projection senders.
+      - aduana-projection
     environment:
       NODE_PORT: 3000
       PG_DATABASE_URL: postgres://${PG_DATABASE_USER:-postgres}:${PG_DATABASE_PASSWORD:-postgres}@${PG_DATABASE_HOST:-db}:${PG_DATABASE_PORT:-5432}/default
@@ -136,3 +140,7 @@ services:
 volumes:
   db-data:
   server-local-data:
+
+networks:
+  aduana-projection:
+    name: colmena-twenty-projection-net
