@@ -6,7 +6,7 @@ This document records the safe proof path for the ColmenaOS → Twenty Fork Adua
 
 | Proof | Status | Command |
 | --- | --- | --- |
-| Receiver integration contract | Passing | `npx nx test:integration twenty-server --testPathPattern=aduana-projection` |
+| Receiver integration contract | Passing | `npx nx test:integration:aduana-receiver-proof twenty-server` |
 | No-dotenv receiver proof | Passing | See command below |
 | Live receiver proof harness | Passing | See command below |
 | Live Kai → receiver proof | Pending | Requires running Kai against the documented fake receiver contract |
@@ -18,7 +18,7 @@ Use fake values only:
 ```bash
 TWENTY_DISABLE_DOTENV=true \
 ADUANA_PROJECTION_WORKSPACE_SECRETS='{"20202020-1c25-4d02-bf25-6aeccf7ea419":"fake-aduana-projection-secret"}' \
-npx nx test:integration twenty-server --testPathPattern=aduana-projection-receiver --verbose
+npx nx test:integration:aduana-receiver-proof twenty-server
 ```
 
 This proves:
@@ -36,7 +36,7 @@ Use this focused proof test when a future ColmenaOS/Kai runtime proof needs the 
 ```bash
 TWENTY_DISABLE_DOTENV=true \
 ADUANA_PROJECTION_WORKSPACE_SECRETS='{"20202020-1c25-4d02-bf25-6aeccf7ea419":"fake-aduana-projection-secret"}' \
-npx nx test:integration twenty-server --testPathPattern=aduana-projection-live-receiver-proof --verbose
+npx nx test:integration:aduana-live-receiver-proof twenty-server
 ```
 
 This harness:
