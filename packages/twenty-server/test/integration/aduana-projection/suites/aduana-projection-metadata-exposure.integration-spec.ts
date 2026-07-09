@@ -63,7 +63,7 @@ type NestProviderRef = {
 };
 
 type AduanaProjectionDependentMetadataCompleteness = {
-  searchFieldMetadataUniversalIdentifiers: string[];
+  searchFieldMetadataFieldUniversalIdentifiers: string[];
   viewUniversalIdentifiers: string[];
   viewFieldUniversalIdentifiers: string[];
   pageLayoutUniversalIdentifiers: string[];
@@ -245,7 +245,7 @@ const selectAduanaProjectionMetadataUniversalIdentifiers = async ({
   );
 };
 
-const getAduanaProjectionSearchFieldMetadataUniversalIdentifiers = (
+const getAduanaProjectionSearchFieldMetadataFieldUniversalIdentifiers = (
   standardFlatSearchFieldMetadataMaps: FlatEntityMaps<FlatSearchFieldMetadata>,
 ): string[] =>
   Object.values(standardFlatSearchFieldMetadataMaps.byUniversalIdentifier)
@@ -256,25 +256,51 @@ const getAduanaProjectionSearchFieldMetadataUniversalIdentifiers = (
         STANDARD_OBJECTS.aduanaProjection.universalIdentifier,
     )
     .map(
-      (flatSearchFieldMetadata) => flatSearchFieldMetadata.universalIdentifier,
+      (flatSearchFieldMetadata) =>
+        flatSearchFieldMetadata.fieldMetadataUniversalIdentifier,
     );
 
-const selectAduanaProjectionDependentMetadataCompleteness = async ({
-  expectedSearchFieldMetadataUniversalIdentifiers,
+const selectAduanaProjectionSearchFieldMetadataFieldUniversalIdentifiers = async ({
+  expectedFieldMetadataUniversalIdentifiers,
 }: {
-  expectedSearchFieldMetadataUniversalIdentifiers: string[];
+  expectedFieldMetadataUniversalIdentifiers: string[];
+}): Promise<string[]> => {
+  if (expectedFieldMetadataUniversalIdentifiers.length === 0) {
+    return [];
+  }
+
+  const rows = await global.testDataSource.query(
+    `SELECT fm."universalIdentifier"
+     FROM core."searchFieldMetadata" sfm
+     JOIN core."objectMetadata" om ON om.id = sfm."objectMetadataId"
+     JOIN core."fieldMetadata" fm ON fm.id = sfm."fieldMetadataId"
+     WHERE om."workspaceId" = $1
+       AND om."nameSingular" = 'aduanaProjection'
+       AND fm."universalIdentifier" = ANY($2)`,
+    [SEED_APPLE_WORKSPACE_ID, expectedFieldMetadataUniversalIdentifiers],
+  );
+
+  return rows.map(
+    (row: { universalIdentifier: string }) => row.universalIdentifier,
+  );
+};
+
+const selectAduanaProjectionDependentMetadataCompleteness = async ({
+  expectedSearchFieldMetadataFieldUniversalIdentifiers,
+}: {
+  expectedSearchFieldMetadataFieldUniversalIdentifiers: string[];
 }): Promise<AduanaProjectionDependentMetadataCompleteness> => {
   const [
-    searchFieldMetadataUniversalIdentifiers,
+    searchFieldMetadataFieldUniversalIdentifiers,
     viewUniversalIdentifiers,
     viewFieldUniversalIdentifiers,
     pageLayoutUniversalIdentifiers,
     pageLayoutTabUniversalIdentifiers,
     pageLayoutWidgetUniversalIdentifiers,
   ] = await Promise.all([
-    selectAduanaProjectionMetadataUniversalIdentifiers({
-      tableName: 'searchFieldMetadata',
-      universalIdentifiers: expectedSearchFieldMetadataUniversalIdentifiers,
+    selectAduanaProjectionSearchFieldMetadataFieldUniversalIdentifiers({
+      expectedFieldMetadataUniversalIdentifiers:
+        expectedSearchFieldMetadataFieldUniversalIdentifiers,
     }),
     selectAduanaProjectionMetadataUniversalIdentifiers({
       tableName: 'view',
@@ -301,7 +327,7 @@ const selectAduanaProjectionDependentMetadataCompleteness = async ({
   ]);
 
   return {
-    searchFieldMetadataUniversalIdentifiers,
+    searchFieldMetadataFieldUniversalIdentifiers,
     viewUniversalIdentifiers,
     viewFieldUniversalIdentifiers,
     pageLayoutUniversalIdentifiers,
@@ -312,13 +338,13 @@ const selectAduanaProjectionDependentMetadataCompleteness = async ({
 
 const getMissingAduanaProjectionDependentMetadata = ({
   completeness,
-  expectedSearchFieldMetadataUniversalIdentifiers,
+  expectedSearchFieldMetadataFieldUniversalIdentifiers,
 }: {
   completeness: AduanaProjectionDependentMetadataCompleteness;
-  expectedSearchFieldMetadataUniversalIdentifiers: string[];
+  expectedSearchFieldMetadataFieldUniversalIdentifiers: string[];
 }): string[] => {
   const expectedByMetadataName = {
-    searchFieldMetadata: expectedSearchFieldMetadataUniversalIdentifiers,
+    searchFieldMetadata: expectedSearchFieldMetadataFieldUniversalIdentifiers,
     view: ADUANA_PROJECTION_VIEW_UNIVERSAL_IDENTIFIERS,
     viewField: ADUANA_PROJECTION_VIEW_FIELD_UNIVERSAL_IDENTIFIERS,
     pageLayout: ADUANA_PROJECTION_PAGE_LAYOUT_UNIVERSAL_IDENTIFIERS,
@@ -328,7 +354,7 @@ const getMissingAduanaProjectionDependentMetadata = ({
   };
 
   const existingByMetadataName = {
-    searchFieldMetadata: completeness.searchFieldMetadataUniversalIdentifiers,
+    searchFieldMetadata: completeness.searchFieldMetadataFieldUniversalIdentifiers,
     view: completeness.viewUniversalIdentifiers,
     viewField: completeness.viewFieldUniversalIdentifiers,
     pageLayout: completeness.pageLayoutUniversalIdentifiers,
@@ -494,8 +520,8 @@ const ensureAduanaProjectionMetadata = async () => {
       workspaceId: SEED_APPLE_WORKSPACE_ID,
       twentyStandardApplicationId: twentyStandardFlatApplication.id,
     });
-  const expectedSearchFieldMetadataUniversalIdentifiers =
-    getAduanaProjectionSearchFieldMetadataUniversalIdentifiers(
+  const expectedSearchFieldMetadataFieldUniversalIdentifiers =
+    getAduanaProjectionSearchFieldMetadataFieldUniversalIdentifiers(
       standardMaps.flatSearchFieldMetadataMaps,
     );
 
@@ -503,12 +529,12 @@ const ensureAduanaProjectionMetadata = async () => {
     await selectAduanaProjectionObjectMetadataId();
   const existingCompleteness =
     await selectAduanaProjectionDependentMetadataCompleteness({
-      expectedSearchFieldMetadataUniversalIdentifiers,
+      expectedSearchFieldMetadataFieldUniversalIdentifiers,
     });
   const missingExistingDependentMetadata =
     getMissingAduanaProjectionDependentMetadata({
       completeness: existingCompleteness,
-      expectedSearchFieldMetadataUniversalIdentifiers,
+      expectedSearchFieldMetadataFieldUniversalIdentifiers,
     });
 
   if (
@@ -644,12 +670,12 @@ const ensureAduanaProjectionMetadata = async () => {
 
   const createdCompleteness =
     await selectAduanaProjectionDependentMetadataCompleteness({
-      expectedSearchFieldMetadataUniversalIdentifiers,
+      expectedSearchFieldMetadataFieldUniversalIdentifiers,
     });
   const missingCreatedDependentMetadata =
     getMissingAduanaProjectionDependentMetadata({
       completeness: createdCompleteness,
-      expectedSearchFieldMetadataUniversalIdentifiers,
+      expectedSearchFieldMetadataFieldUniversalIdentifiers,
     });
 
   if (missingCreatedDependentMetadata.length > 0) {

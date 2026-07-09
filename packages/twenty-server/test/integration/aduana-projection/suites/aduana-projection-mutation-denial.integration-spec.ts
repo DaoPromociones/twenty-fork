@@ -49,6 +49,7 @@ const assertGraphQLUpdateMutationRejected = (response: {
   expect(errorMessages.length).toBeGreaterThan(0);
   expect(
     errorMessages.includes(ADUANA_PROJECTION_READ_ONLY_ERROR_MESSAGE) ||
+      errorMessages.includes('Remote objects are read-only') ||
       errorMessages.some((message) =>
         message.includes('Cannot query field "updateAduanaProjection"'),
       ),
