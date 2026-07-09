@@ -8,7 +8,8 @@ This document records the safe proof path for the ColmenaOS → Twenty Fork Adua
 | --- | --- | --- |
 | Receiver integration contract | Passing | `npx nx test:integration twenty-server --testPathPattern=aduana-projection` |
 | No-dotenv receiver proof | Passing | See command below |
-| Live Kai → receiver proof | Pending | Requires a safe live receiver process and explicit fake config |
+| Live receiver proof harness | Passing | See command below |
+| Live Kai → receiver proof | Pending | Requires running Kai against the documented fake receiver contract |
 
 ## No-dotenv receiver proof
 
@@ -28,9 +29,28 @@ This proves:
 - replay/idempotency behavior remains controlled;
 - `.env` / `.env.test` loading is disabled by `TWENTY_DISABLE_DOTENV=true`.
 
+## Live receiver proof harness
+
+Use this focused proof test when a future ColmenaOS/Kai runtime proof needs the same live HTTP listener and wire contract without loading `.env` files:
+
+```bash
+TWENTY_DISABLE_DOTENV=true \
+ADUANA_PROJECTION_WORKSPACE_SECRETS='{"20202020-1c25-4d02-bf25-6aeccf7ea419":"fake-aduana-projection-secret"}' \
+npx nx test:integration twenty-server --testPathPattern=aduana-projection-live-receiver-proof --verbose
+```
+
+This harness:
+
+- starts the real Nest HTTP listener on `localhost:4000` through the integration test bootstrap;
+- posts to `POST /webhooks/aduana/projection/:workspaceId` over HTTP;
+- signs the exact request path, workspace ID, timestamp, nonce, and raw JSON body with the fake HMAC secret;
+- proves the receiver accepts a Kai-compatible envelope through the real controller/auth/ingestion path;
+- does not start the worker, create Docker networks, change compose ports, or read `.env` / `.env.test` when `TWENTY_DISABLE_DOTENV=true` is set.
+
 ## What this does not prove
 
 - It does not prove a live ColmenaOS/Kai container can reach the receiver.
+- It does not keep a long-running process alive outside Jest; it is a focused live HTTP proof test.
 - It does not create or validate `colmena-twenty-projection-net`.
 - It does not use real secrets or production workspace configuration.
 - It does not prove the broader no-dotenv `aduana-projection` suite; metadata and mutation-denial no-dotenv seed setup is separate hardening.
