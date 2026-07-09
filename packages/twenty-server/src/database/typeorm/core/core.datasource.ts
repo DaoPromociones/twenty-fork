@@ -2,10 +2,14 @@ import { type TypeOrmModuleOptions } from '@nestjs/typeorm';
 
 import { config } from 'dotenv';
 import { DataSource, type DataSourceOptions, type LogLevel } from 'typeorm';
-config({
-  path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
-  override: true,
-});
+import { shouldLoadEnvFile } from 'src/utils/env-file-loading.util';
+
+if (shouldLoadEnvFile()) {
+  config({
+    path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+    override: true,
+  });
+}
 
 const isRunningCommand = (): boolean => {
   const scriptPath = process.argv[1] || '';

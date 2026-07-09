@@ -1,9 +1,13 @@
 import { config } from 'dotenv';
 import { DataSource, type DataSourceOptions } from 'typeorm';
-config({
-  path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
-  override: true,
-});
+import { shouldLoadEnvFile } from 'src/utils/env-file-loading.util';
+
+if (shouldLoadEnvFile()) {
+  config({
+    path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+    override: true,
+  });
+}
 
 const typeORMRawModuleOptions: DataSourceOptions = {
   url: process.env.PG_DATABASE_URL,
