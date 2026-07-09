@@ -36,6 +36,20 @@
         }
       }
     },
+    "test:integration:aduana-receiver-proof": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-server",
+        "command": "TWENTY_DISABLE_DOTENV=true ADUANA_PROJECTION_WORKSPACE_SECRETS='{\"20202020-1c25-4d02-bf25-6aeccf7ea419\":\"fake-aduana-projection-secret\"}' NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=6144\" jest --config ./jest-integration.config.ts --logHeapUsage --detectOpenHandles --runInBand --testPathPattern=aduana-projection-receiver"
+      }
+    },
+    "test:integration:aduana-live-receiver-proof": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/twenty-server",
+        "command": "TWENTY_DISABLE_DOTENV=true ADUANA_PROJECTION_WORKSPACE_SECRETS='{\"20202020-1c25-4d02-bf25-6aeccf7ea419\":\"fake-aduana-projection-secret\"}' NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=6144\" jest --config ./jest-integration.config.ts --logHeapUsage --detectOpenHandles --runInBand --testPathPattern=aduana-projection-live-receiver-proof"
+      }
+    },
     "build:packageJson": {
       "executor": "@nx/js:tsc",
       "options": {
