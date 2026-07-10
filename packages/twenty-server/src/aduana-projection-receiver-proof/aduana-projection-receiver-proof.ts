@@ -190,8 +190,10 @@ export const startAduanaReceiverProof = async (): Promise<void> => {
     fail('bootstrap', error);
   }
 
+  const receiverApp = app!;
+
   try {
-    await app.listen(PORT, HOST);
+    await receiverApp.listen(PORT, HOST);
   } catch (error) {
     fail('listen', error);
   }
