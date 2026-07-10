@@ -8,27 +8,30 @@ import { installUpgradeAwareRepositoryProxy } from 'src/engine/twenty-orm/upgrad
 import { AduanaProjectionAuditEntity } from 'src/modules/aduana-projection/aduana-projection-audit.entity';
 import { AduanaProjectionModule } from 'src/modules/aduana-projection/aduana-projection.module';
 
-export const buildAduanaReceiverProofDataSourceOptions = (): TypeOrmModuleOptions => ({
-  type: 'postgres',
-  url: process.env.PG_DATABASE_URL,
-  schema: 'core',
-  entities: [AduanaProjectionAuditEntity],
-  synchronize: false,
-  migrationsRun: false,
-  retryAttempts: 0,
-  logging: process.env.NODE_ENV === 'test' ? [] : ['error'],
-  ssl:
-    process.env.PG_SSL_ALLOW_SELF_SIGNED === 'true'
-      ? {
-          rejectUnauthorized: false,
-        }
-      : undefined,
-  extra: {
-    query_timeout: Number(process.env.PG_DATABASE_PRIMARY_TIMEOUT_MS ?? 10000),
-    idleTimeoutMillis: Number(process.env.PG_POOL_IDLE_TIMEOUT_MS ?? 600000),
-    allowExitOnIdle: process.env.PG_POOL_ALLOW_EXIT_ON_IDLE === 'true',
-  },
-});
+export const buildAduanaReceiverProofDataSourceOptions =
+  (): TypeOrmModuleOptions => ({
+    type: 'postgres',
+    url: process.env.PG_DATABASE_URL,
+    schema: 'core',
+    entities: [AduanaProjectionAuditEntity],
+    synchronize: false,
+    migrationsRun: false,
+    retryAttempts: 0,
+    logging: process.env.NODE_ENV === 'test' ? [] : ['error'],
+    ssl:
+      process.env.PG_SSL_ALLOW_SELF_SIGNED === 'true'
+        ? {
+            rejectUnauthorized: false,
+          }
+        : undefined,
+    extra: {
+      query_timeout: Number(
+        process.env.PG_DATABASE_PRIMARY_TIMEOUT_MS ?? 10000,
+      ),
+      idleTimeoutMillis: Number(process.env.PG_POOL_IDLE_TIMEOUT_MS ?? 600000),
+      allowExitOnIdle: process.env.PG_POOL_ALLOW_EXIT_ON_IDLE === 'true',
+    },
+  });
 
 const prepareAduanaProjectionAuditStorage = async (
   dataSource: DataSource,

@@ -61,7 +61,9 @@ export class AduanaProjectionController {
         error instanceof Error &&
         ADUANA_PROJECTION_AUTH_REJECTION_MESSAGES.has(error.message)
       ) {
-        throw new UnauthorizedException('Aduana projection authentication failed');
+        throw new UnauthorizedException(
+          'Aduana projection authentication failed',
+        );
       }
 
       throw error;
