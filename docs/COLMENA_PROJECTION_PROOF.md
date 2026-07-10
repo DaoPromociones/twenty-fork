@@ -7,6 +7,7 @@ This document records the safe proof path for the ColmenaOS → Twenty Fork Adua
 | Proof | Status | Evidence / command |
 | --- | --- | --- |
 | Receiver integration contract | Passing test gate | `npx nx test:integration:aduana-receiver-proof twenty-server` |
+| Receiver negative/resilience contract | Passing test gate | Same focused receiver gate covers tampered signatures, workspace mismatch, malformed JSON, and no-impact assertions |
 | No-dotenv operator receiver proof | Passing live proof | `node packages/twenty-server/scripts/start-aduana-receiver-proof.js` emitted `ADUANA_LIVE_SURFACE_READY` and closed cleanly by timeout |
 | Live receiver proof harness | Passing test gate | `npx nx test:integration:aduana-live-receiver-proof twenty-server` |
 | Cajón 2.3.20 runtime opt-in Kai → receiver proof | Closed as evidence | `colmenaOS` `AUDIT_INDEX.md` records a temporary harness that invoked Kai production delivery code against a live local receiver using fake values only |
@@ -41,8 +42,21 @@ These test gates prove receiver behavior:
 
 - exercises `POST /webhooks/aduana/projection/:workspaceId` through the real receiver controller/auth/ingestion path;
 - accepts signed valid envelopes and quarantines invalid envelopes;
+- rejects corrupt receiver envelopes before acceptance when the signature/body, route workspace, or JSON body is unsafe;
 - keeps replay/idempotency behavior controlled;
 - keeps fake-value receiver behavior covered without serving as no-dotenv operator evidence.
+
+## Cajón 2.3.23 receiver negative/resilience proof
+
+The focused receiver integration gate is the reconstructible evidence for corrupt-envelope rejection. It uses only the fake workspace and fake HMAC secret documented above.
+
+| Negative case | Expected rejection contract | Observed/covered behavior |
+| --- | --- | --- |
+| Tampered body signed for different bytes | Unauthorized rejection; do not persist audit or projection impact | `401`, no `aduanaProjectionAudit` row for the nonce, no generic projection mutation |
+| Workspace mismatch | Unauthorized rejection before ingestion; do not persist audit or projection impact | `401`, no `aduanaProjectionAudit` row for the nonce, no generic projection mutation |
+| Malformed JSON body | Bad-request rejection before ingestion; do not persist audit or projection impact | `400`, no `aduanaProjectionAudit` row for the nonce, no generic projection mutation |
+
+This resilience proof does not add a callback/command channel to ColmenaOS, does not attach ColmenaOS to a Twenty network, and does not prove against a live external receiver. It is a receiver-only Twenty test gate.
 
 Important limit: `test:integration:aduana-live-receiver-proof` proves the live Twenty receiver path, but its envelope is built inside the TypeScript proof. It does **not** invoke ColmenaOS/Kai production delivery code.
 

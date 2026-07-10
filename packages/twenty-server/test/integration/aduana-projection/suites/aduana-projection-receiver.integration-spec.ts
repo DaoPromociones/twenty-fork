@@ -9,6 +9,8 @@ const TEST_WORKSPACE_ID = '20202020-1c25-4d02-bf25-6aeccf7ea419';
 const TEST_SCHEMA_NAME = 'workspace_1wgvd1injqtife6y4rvfbu3h5';
 const TEST_SECRET = 'fake-aduana-projection-secret';
 const RECEIVER_PATH = `/webhooks/aduana/projection/${TEST_WORKSPACE_ID}`;
+const UNKNOWN_WORKSPACE_ID = '30303030-1c25-4d02-bf25-6aeccf7ea419';
+const UNKNOWN_WORKSPACE_PATH = `/webhooks/aduana/projection/${UNKNOWN_WORKSPACE_ID}`;
 
 type AduanaProjectionAuditRow = {
   eventId: string | null;
@@ -32,16 +34,20 @@ const buildEnvelope = (overrides: Record<string, unknown> = {}) => ({
 const signPayload = ({
   rawBody,
   nonce,
+  path = RECEIVER_PATH,
+  workspaceId = TEST_WORKSPACE_ID,
   timestamp = new Date().toISOString(),
 }: {
   rawBody: Buffer;
   nonce: string;
+  path?: string;
+  workspaceId?: string;
   timestamp?: string;
 }) => {
   const payload = buildAduanaProjectionSignaturePayload({
     method: 'POST',
-    path: RECEIVER_PATH,
-    workspaceId: TEST_WORKSPACE_ID,
+    path,
+    workspaceId,
     timestamp,
     nonce,
     rawBody,
@@ -51,6 +57,31 @@ const signPayload = ({
     timestamp,
     signature: createHmac('sha256', TEST_SECRET).update(payload).digest('hex'),
   };
+};
+
+const postRawBody = async ({
+  path = RECEIVER_PATH,
+  rawBody,
+  workspaceId = TEST_WORKSPACE_ID,
+  nonce = randomUUID(),
+  signature,
+}: {
+  path?: string;
+  rawBody: Buffer;
+  workspaceId?: string;
+  nonce?: string;
+  signature?: string;
+}) => {
+  const signedPayload = signPayload({ rawBody, nonce, path, workspaceId });
+
+  return request(`http://localhost:${APP_PORT}`)
+    .post(path)
+    .set('Content-Type', 'application/json')
+    .set('X-Aduana-Workspace-Id', workspaceId)
+    .set('X-Aduana-Timestamp', signedPayload.timestamp)
+    .set('X-Aduana-Nonce', nonce)
+    .set('X-Aduana-Signature', `sha256=${signature ?? signedPayload.signature}`)
+    .send(rawBody.toString('utf8'));
 };
 
 const postSignedEnvelope = async ({
@@ -94,6 +125,17 @@ const selectAuditRowByNonce = async (authNonce: string) => {
   );
 
   return row as AduanaProjectionAuditRow | undefined;
+};
+
+const selectAuditRowsByNonce = async (authNonce: string) => {
+  const rows = await global.testDataSource.query(
+    `SELECT "eventId", "rawBody", "canonicalHash", status, "quarantineReason", "authNonce"
+     FROM core."aduanaProjectionAudit"
+     WHERE "authNonce" = $1`,
+    [authNonce],
+  );
+
+  return rows as AduanaProjectionAuditRow[];
 };
 
 const deleteAuditRows = async (eventIds: string[]) => {
@@ -248,6 +290,58 @@ describe('Aduana projection receiver integration', () => {
       quarantineReason: 'Missing required Aduana trusted field: occurredAt',
       authNonce: nonce,
     });
+  });
+
+  it('rejects a tampered signed body without recording receiver impact', async () => {
+    const nonce = randomUUID();
+    const originalEnvelope = buildEnvelope();
+    const tamperedEnvelope = {
+      ...originalEnvelope,
+      summary: 'Tampered projection summary',
+    };
+    const originalRawBody = Buffer.from(JSON.stringify(originalEnvelope));
+    const tamperedRawBody = Buffer.from(JSON.stringify(tamperedEnvelope));
+    const { signature } = signPayload({ rawBody: originalRawBody, nonce });
+    const projectionRowsBefore = await countProjectionRows();
+
+    const response = await postRawBody({
+      rawBody: tamperedRawBody,
+      nonce,
+      signature,
+    });
+
+    expect(response.status).toBe(401);
+    expect(await countProjectionRows()).toBe(projectionRowsBefore);
+    expect(await selectAuditRowsByNonce(nonce)).toEqual([]);
+  });
+
+  it('rejects an unknown workspace before ingestion without recording receiver impact', async () => {
+    const nonce = randomUUID();
+    const rawBody = Buffer.from(JSON.stringify(buildEnvelope()));
+    const projectionRowsBefore = await countProjectionRows();
+
+    const response = await postRawBody({
+      path: UNKNOWN_WORKSPACE_PATH,
+      rawBody,
+      workspaceId: TEST_WORKSPACE_ID,
+      nonce,
+    });
+
+    expect(response.status).toBe(401);
+    expect(await countProjectionRows()).toBe(projectionRowsBefore);
+    expect(await selectAuditRowsByNonce(nonce)).toEqual([]);
+  });
+
+  it('rejects malformed JSON before ingestion without recording receiver impact', async () => {
+    const nonce = randomUUID();
+    const rawBody = Buffer.from('{"eventId":', 'utf8');
+    const projectionRowsBefore = await countProjectionRows();
+
+    const response = await postRawBody({ rawBody, nonce });
+
+    expect(response.status).toBe(400);
+    expect(await countProjectionRows()).toBe(projectionRowsBefore);
+    expect(await selectAuditRowsByNonce(nonce)).toEqual([]);
   });
 
   it('replays identical envelopes idempotently and quarantines conflicting envelopes without updating the accepted audit row', async () => {
