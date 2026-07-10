@@ -7,10 +7,10 @@ This document records the safe proof path for the ColmenaOS → Twenty Fork Adua
 | Proof | Status | Evidence / command |
 | --- | --- | --- |
 | Receiver integration contract | Passing test gate | `npx nx test:integration:aduana-receiver-proof twenty-server` |
-| No-dotenv operator receiver proof | Pending external proof | Governed path is only `node packages/twenty-server/scripts/start-aduana-receiver-proof.js` |
+| No-dotenv operator receiver proof | Passing live proof | `node packages/twenty-server/scripts/start-aduana-receiver-proof.js` emitted `ADUANA_LIVE_SURFACE_READY` and closed cleanly by timeout |
 | Live receiver proof harness | Passing test gate | `npx nx test:integration:aduana-live-receiver-proof twenty-server` |
 | Cajón 2.3.20 runtime opt-in Kai → receiver proof | Closed as evidence | `colmenaOS` `AUDIT_INDEX.md` records a temporary harness that invoked Kai production delivery code against a live local receiver using fake values only |
-| Cajón 2.3.21 durable cross-repo proof path | Ready for operator-coordinated live command | Use the explicit non-Nx `node packages/twenty-server/scripts/start-aduana-receiver-proof.js` runner, wait for `ADUANA_LIVE_SURFACE_READY`, then run the selected ColmenaOS/Kai proof command from `/home/macala/colmenaOS` |
+| Cajón 2.3.21 durable cross-repo proof path | PASS: operator-coordinated live proof | Twenty runner stayed receiver-only and ColmenaOS/Kai delivered event `aduana.projection.v1:admission.received:FILE-cajon-2321-proof:evidence-cajon-2321-proof` using production projection envelope/transport/delivery functions |
 
 The reliable Twenty Nx targets were added on `twenty-fork/dev` by `61627fbe0c` and are test gates only. They are not governed no-dotenv operator proof evidence because Nx can load workspace env files before process-level guards run. The older generic nested `test:integration --testPathPattern=...` path is not the proof gate.
 
@@ -150,3 +150,30 @@ Start with the operator-coordinated contract above. Automate only after the exac
 - No persistent listener remained on `127.0.0.1:4000` after the Jest-managed live receiver gate completed.
 - A bounded direct-Jest keepalive attempt using a temporary `/tmp/opencode` setup hook failed during database startup with `SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string` before the ColmenaOS proof command could run.
 - Result: the external ColmenaOS proof command was not executed. Add a safe documented keepalive/runner surface before retrying the cross-repo live proof.
+
+## 2026-07-10 live cross-repo proof PASS
+
+Starting state:
+
+- `/home/macala/twenty-fork`: `dev`, HEAD `63841bbd701ac580b1a1ca2ab1bf23dd6e663d8c`, only `.atl/` untracked.
+- `/home/macala/colmenaOS`: `dev...origin/dev`, HEAD `7ed50d7d9ae4658bb70fda6526907bc6801563d9`.
+
+Twenty runner command:
+
+```bash
+PG_DATABASE_URL='<explicit-local-test-postgres-url>' ADUANA_RECEIVER_PROOF_TIMEOUT_MS=60000 node packages/twenty-server/scripts/start-aduana-receiver-proof.js
+```
+
+Result: exit code 0. The actual run used the public local/test Postgres URL template from `.env.example` as an explicit `PG_DATABASE_URL` value; it did not source `.env` or `.env.test`. The runner emitted `ADUANA_LIVE_SURFACE_READY` for endpoint `http://127.0.0.1:4000/webhooks/aduana/projection/20202020-1c25-4d02-bf25-6aeccf7ea419`, `noDotenv=true`, `fakeBoundary=true`, bind `127.0.0.1:4000`, bounded module `AduanaProjectionReceiverProofModule`, and then `ADUANA_LIVE_SURFACE_CLOSED` by timeout.
+
+ColmenaOS proof command:
+
+```bash
+COLMENA_TWENTY_PROOF_ENDPOINT='http://127.0.0.1:4000/webhooks/aduana/projection/20202020-1c25-4d02-bf25-6aeccf7ea419' COLMENA_TWENTY_PROOF_WORKSPACE_ID='20202020-1c25-4d02-bf25-6aeccf7ea419' COLMENA_TWENTY_PROOF_SECRET='fake-aduana-projection-secret' PYTHONDONTWRITEBYTECODE=1 PYTHONPATH='/tmp/opencode/colmenaos-kai-deps:/home/macala/colmenaOS' python3 scripts/prove_twenty_projection_delivery.py
+```
+
+Result: exit code 0, output status `delivered`, event ID `aduana.projection.v1:admission.received:FILE-cajon-2321-proof:evidence-cajon-2321-proof`.
+
+Boundaries preserved: no `.env` / `.env.test` read or modified; fake workspace/secret only; no real secrets; Kai invoked production projection envelope/transport/delivery functions; Kai did not write directly to Twenty DB; Twenty remained receiver only with no callback/command-channel to ColmenaOS; Kai was not attached to `twenty-dev_default`; runner closed cleanly by timeout.
+
+Conclusion: Cajón 2.3.21 live proof is PASS. This is operator-coordinated live evidence, not CI automation.
