@@ -10,7 +10,7 @@ This document records the safe proof path for the ColmenaOS → Twenty Fork Adua
 | No-dotenv receiver proof | Passing | Same target with `TWENTY_DISABLE_DOTENV=true` and fake workspace secret |
 | Live receiver proof harness | Passing | `npx nx test:integration:aduana-live-receiver-proof twenty-server` |
 | Cajón 2.3.20 runtime opt-in Kai → receiver proof | Closed as evidence | `colmenaOS` `AUDIT_INDEX.md` records a temporary harness that invoked Kai production delivery code against a live local receiver using fake values only |
-| Cajón 2.3.21 durable cross-repo proof path | Pending | Needs a stable operator/CI contract before adding automation |
+| Cajón 2.3.21 durable cross-repo proof path | Blocked for live external command | Receiver gates pass, but the 2026-07-10 operator attempt found no safe documented keepalive/runner surface for the external ColmenaOS command without dotenv or broad stack startup |
 
 The reliable Twenty proof targets were added on `twenty-fork/dev` by `61627fbe0c` and are the supported operator/CI entrypoints for this proof family. The older generic nested `test:integration --testPathPattern=...` path is not the proof gate.
 
@@ -93,3 +93,11 @@ The next slice should prove one opt-in ColmenaOS/Kai projection against a live T
 | Manual `workflow_dispatch` | Clear human opt-in and lower coupling, but evidence correlation across repos is more manual and easier to drift. |
 
 Start with the operator-coordinated contract above. Automate only after the exact command surface and evidence expectations are stable.
+
+## 2026-07-10 operator attempt result
+
+- `npx nx test:integration:aduana-receiver-proof twenty-server` passed on rerun with the fake workspace/secret and `TWENTY_DISABLE_DOTENV=true`.
+- `npx nx test:integration:aduana-live-receiver-proof twenty-server` passed with the same fake/no-dotenv boundary.
+- No persistent listener remained on `127.0.0.1:4000` after the Jest-managed live receiver gate completed.
+- A bounded direct-Jest keepalive attempt using a temporary `/tmp/opencode` setup hook failed during database startup with `SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string` before the ColmenaOS proof command could run.
+- Result: the external ColmenaOS proof command was not executed. Add a safe documented keepalive/runner surface before retrying the cross-repo live proof.
