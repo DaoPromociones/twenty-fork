@@ -6,13 +6,13 @@ This document records the safe proof path for the ColmenaOS → Twenty Fork Adua
 
 | Proof | Status | Evidence / command |
 | --- | --- | --- |
-| Receiver integration contract | Passing | `npx nx test:integration:aduana-receiver-proof twenty-server` |
-| No-dotenv receiver proof | Passing | Same target with `TWENTY_DISABLE_DOTENV=true` and fake workspace secret |
-| Live receiver proof harness | Passing | `npx nx test:integration:aduana-live-receiver-proof twenty-server` |
+| Receiver integration contract | Passing test gate | `npx nx test:integration:aduana-receiver-proof twenty-server` |
+| No-dotenv operator receiver proof | Pending external proof | Governed path is only `node packages/twenty-server/scripts/start-aduana-receiver-proof.js` |
+| Live receiver proof harness | Passing test gate | `npx nx test:integration:aduana-live-receiver-proof twenty-server` |
 | Cajón 2.3.20 runtime opt-in Kai → receiver proof | Closed as evidence | `colmenaOS` `AUDIT_INDEX.md` records a temporary harness that invoked Kai production delivery code against a live local receiver using fake values only |
-| Cajón 2.3.21 durable cross-repo proof path | Blocked for live external command | Receiver gates pass, but the 2026-07-10 operator attempt found no safe documented keepalive/runner surface for the external ColmenaOS command without dotenv or broad stack startup |
+| Cajón 2.3.21 durable cross-repo proof path | Ready for operator-coordinated live command | Use the explicit non-Nx `node packages/twenty-server/scripts/start-aduana-receiver-proof.js` runner, wait for `ADUANA_LIVE_SURFACE_READY`, then run the selected ColmenaOS/Kai proof command from `/home/macala/colmenaOS` |
 
-The reliable Twenty proof targets were added on `twenty-fork/dev` by `61627fbe0c` and are the supported operator/CI entrypoints for this proof family. The older generic nested `test:integration --testPathPattern=...` path is not the proof gate.
+The reliable Twenty Nx targets were added on `twenty-fork/dev` by `61627fbe0c` and are test gates only. They are not governed no-dotenv operator proof evidence because Nx can load workspace env files before process-level guards run. The older generic nested `test:integration --testPathPattern=...` path is not the proof gate.
 
 ## Fake proof values
 
@@ -21,9 +21,9 @@ The reliable Twenty proof targets were added on `twenty-fork/dev` by `61627fbe0c
 | `20202020-1c25-4d02-bf25-6aeccf7ea419` | Fake workspace ID |
 | `fake-aduana-projection-secret` | Fake HMAC shared secret |
 
-## Twenty receiver proof commands
+## Twenty receiver test gates
 
-Run these from `/home/macala/twenty-fork` on `dev` with fake values only:
+Run these from `/home/macala/twenty-fork` on `dev` with fake values only. They are CI/operator test gates, not the governed no-dotenv operator proof path:
 
 ```bash
 TWENTY_DISABLE_DOTENV=true \
@@ -37,14 +37,63 @@ ADUANA_PROJECTION_WORKSPACE_SECRETS='{"20202020-1c25-4d02-bf25-6aeccf7ea419":"fa
 npx nx test:integration:aduana-live-receiver-proof twenty-server
 ```
 
-These prove the Twenty receiver path:
+These test gates prove receiver behavior:
 
 - exercises `POST /webhooks/aduana/projection/:workspaceId` through the real receiver controller/auth/ingestion path;
 - accepts signed valid envelopes and quarantines invalid envelopes;
 - keeps replay/idempotency behavior controlled;
-- disables `.env` / `.env.test` loading through `TWENTY_DISABLE_DOTENV=true`.
+- keeps fake-value receiver behavior covered without serving as no-dotenv operator evidence.
 
 Important limit: `test:integration:aduana-live-receiver-proof` proves the live Twenty receiver path, but its envelope is built inside the TypeScript proof. It does **not** invoke ColmenaOS/Kai production delivery code.
+
+## Non-Jest live receiver runner
+
+Use this operator-facing runner for the governed no-dotenv cross-repo proof. It starts only the bounded Aduana projection receiver module with explicit TypeORM configuration, binds to `127.0.0.1:4000`, prepares `core."aduanaProjectionAudit"` with the existing fast instance command, and refuses non-fake proof secrets.
+
+### Config validation
+
+Run from `/home/macala/twenty-fork` on `dev` with an explicit local/test Postgres URL. Do not source `.env` or `.env.test`. This governed no-dotenv proof path intentionally uses direct `node`, not Nx, because Nx can load workspace `.env` files before the runner process starts.
+
+```bash
+PG_DATABASE_URL='postgres://<local-test-user>:<local-test-password>@127.0.0.1:<port>/<local-test-db>' \
+node packages/twenty-server/scripts/start-aduana-receiver-proof.js --validate-config
+```
+
+Expected marker:
+
+```json
+{"marker":"ADUANA_LIVE_SURFACE_CONFIG_VALID"}
+```
+
+### Start the live receiver
+
+```bash
+PG_DATABASE_URL='postgres://<local-test-user>:<local-test-password>@127.0.0.1:<port>/<local-test-db>' \
+node packages/twenty-server/scripts/start-aduana-receiver-proof.js
+```
+
+The runner prints readiness only after `await app.listen(4000, '127.0.0.1')` succeeds:
+
+```json
+{
+  "marker": "ADUANA_LIVE_SURFACE_READY",
+  "endpoint": "http://127.0.0.1:4000/webhooks/aduana/projection/20202020-1c25-4d02-bf25-6aeccf7ea419",
+  "workspace": "20202020-1c25-4d02-bf25-6aeccf7ea419",
+  "noDotenv": true,
+  "fakeBoundary": true
+}
+```
+
+On failure it prints structured JSON with `marker: "ADUANA_LIVE_SURFACE_ERROR"`, a `phase`, and a sanitized message, then exits nonzero. `SIGINT`/`SIGTERM` close the Nest app cleanly.
+
+After `ADUANA_LIVE_SURFACE_READY`, run the ColmenaOS/Kai proof from `/home/macala/colmenaOS`:
+
+```bash
+COLMENA_TWENTY_PROOF_ENDPOINT='http://127.0.0.1:4000/webhooks/aduana/projection/20202020-1c25-4d02-bf25-6aeccf7ea419' \
+COLMENA_TWENTY_PROOF_WORKSPACE_ID='20202020-1c25-4d02-bf25-6aeccf7ea419' \
+COLMENA_TWENTY_PROOF_SECRET='fake-aduana-projection-secret' \
+python scripts/prove_twenty_projection_delivery.py
+```
 
 ## Cajón 2.3.21 operator-coordinated proof contract
 
@@ -64,15 +113,15 @@ The next slice should prove one opt-in ColmenaOS/Kai projection against a live T
 
 ### Operator steps
 
-1. In `twenty-fork`, run the receiver gate and the live receiver gate with the fake values shown above.
-2. Start or reuse only the bounded live receiver surface needed for the proof; keep Postgres/Redis local and do not load dotenv files.
+1. In `twenty-fork`, run the receiver gate and the live receiver gate with the fake values shown above as test gates only.
+2. Validate and start the direct non-Nx `node packages/twenty-server/scripts/start-aduana-receiver-proof.js` runner with an explicit local/test `PG_DATABASE_URL`; this is the only governed no-dotenv operator proof path.
 3. In `colmenaOS`, run the selected Cajón 2.3.21 Kai proof command so it invokes production delivery code (`build_projection_envelope()`, `build_twenty_fork_http_transport()`, and `deliver_projection_to_twenty_fork()`) with explicit endpoint, workspace ID, secret, timestamp/nonce inputs, and no dotenv dependency.
 4. Capture evidence in the repo that owns the proof result: command, branch, commit, fake values used, PASS/FAIL, receiver response/event ID, and any cleanup performed.
 
 ### Expected evidence
 
 - `git status --short --branch` for both repos before/after the proof.
-- Twenty receiver proof commands and PASS results.
+- Twenty receiver test gates and PASS results.
 - ColmenaOS/Kai command proving production delivery code was invoked.
 - Receiver response showing a delivered/accepted projection or a precise failure.
 - Explicit statement that no `.env` / `.env.test`, real secrets, direct DB write, callback channel, `twenty-dev_default` attachment, or `dev` → `main` promotion occurred.
