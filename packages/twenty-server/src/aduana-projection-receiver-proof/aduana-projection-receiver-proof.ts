@@ -16,11 +16,7 @@ type ProofConfig = {
   timeoutMs: number | null;
 };
 
-type RunnerPhase =
-  | 'config-validation'
-  | 'bootstrap'
-  | 'listen'
-  | 'shutdown';
+type RunnerPhase = 'config-validation' | 'bootstrap' | 'listen' | 'shutdown';
 
 const parseArgs = (args: string[]) => ({
   validateConfigOnly: args.includes('--validate-config'),
@@ -48,7 +44,10 @@ const fail = (phase: RunnerPhase, error: unknown): never => {
   process.exit(1);
 };
 
-const requireFakeSecretMap = (): Pick<ProofConfig, 'workspaceId' | 'secret'> => {
+const requireFakeSecretMap = (): Pick<
+  ProofConfig,
+  'workspaceId' | 'secret'
+> => {
   const configuredSecrets = process.env.ADUANA_PROJECTION_WORKSPACE_SECRETS;
 
   if (configuredSecrets === undefined || configuredSecrets.length === 0) {
@@ -105,7 +104,9 @@ const parseTimeoutMs = (): number | null => {
   const timeoutMs = Number(rawTimeoutMs);
 
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
-    throw new Error('ADUANA_RECEIVER_PROOF_TIMEOUT_MS must be a positive integer.');
+    throw new Error(
+      'ADUANA_RECEIVER_PROOF_TIMEOUT_MS must be a positive integer.',
+    );
   }
 
   return timeoutMs;
@@ -156,7 +157,9 @@ export const startAduanaReceiverProof = async (): Promise<void> => {
     return;
   }
 
-  const closeApp = async (signal: NodeJS.Signals | 'timeout'): Promise<void> => {
+  const closeApp = async (
+    signal: NodeJS.Signals | 'timeout',
+  ): Promise<void> => {
     if (shutdownStarted) {
       return;
     }
@@ -187,8 +190,10 @@ export const startAduanaReceiverProof = async (): Promise<void> => {
     fail('bootstrap', error);
   }
 
+  const receiverApp = app!;
+
   try {
-    await app.listen(PORT, HOST);
+    await receiverApp.listen(PORT, HOST);
   } catch (error) {
     fail('listen', error);
   }
@@ -209,4 +214,6 @@ export const startAduanaReceiverProof = async (): Promise<void> => {
   }
 };
 
-void startAduanaReceiverProof().catch((error) => fail('config-validation', error));
+void startAduanaReceiverProof().catch((error) =>
+  fail('config-validation', error),
+);
